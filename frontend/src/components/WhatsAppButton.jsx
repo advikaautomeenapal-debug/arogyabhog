@@ -2,7 +2,7 @@ import React from 'react';
 
 /**
  * Floating WhatsApp Button for Arogya Bhog Customer Storefront
- * Direct link: https://wa.me/c/919621496772
+ * Direct link: https://wa.me/919621496772
  * Positioned in bottom-right corner, comfortably above bottom navigation bar on mobile
  */
 export function WhatsAppButton() {
@@ -12,7 +12,7 @@ export function WhatsAppButton() {
       className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 md:bottom-8 md:right-8 z-40 print:hidden"
     >
       <a
-        href="https://wa.me/c/919621496772"
+        href="https://wa.me/919621496772"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat with Arogya Bhog on WhatsApp"

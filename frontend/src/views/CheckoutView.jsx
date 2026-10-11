@@ -39,11 +39,11 @@ export function CheckoutView({
   operationalCosts,
   onBackToStudio, 
   onOrderSuccess,
+  onNavigateToOrders,
   onOpenAuth
 }) {
-  // Payment tab inside payment options: '1tap' | 'qr'
-  const [paymentTab, setPaymentTab] = useState('1tap');
-  const [selectedMethod, setSelectedMethod] = useState('GPay'); // 'GPay' | 'PhonePe' | 'Paytm' | 'COD' | 'VPA'
+  // Payment method: Cash on Delivery (COD by default)
+  const [selectedMethod, setSelectedMethod] = useState('COD');
   const [vpaInput, setVpaInput] = useState('');
   const [vpaVerified, setVpaVerified] = useState(false);
 
@@ -457,10 +457,10 @@ export function CheckoutView({
         items: cart,
         totalAmount: totalPayable,
         discountAmount: discountAmount,
-        paymentMethod: selectedMethod === 'COD' ? 'COD' : (paymentTab === 'qr' ? 'UPI_QR' : 'UPI_1TAP'),
-        paymentStatus: selectedMethod === 'COD' ? 'Pending' : 'Pending',
-        transactionRef: `UPI-TXN-${Date.now().toString().slice(-7)}`,
-        upiTransactionNote: upiTransactionNote
+        paymentMethod: 'COD',
+        paymentStatus: 'Pending',
+        transactionRef: `COD-${Date.now().toString().slice(-7)}`,
+        upiTransactionNote: `COD Order ${Date.now().toString().slice(-6)}`
       };
 
       const res = await api.createOrder(orderPayload);
@@ -582,65 +582,26 @@ export function CheckoutView({
   }
 
   if (orderConfirmed) {
-    const confirmedUpi = buildUpiUri({
-      amount: orderConfirmed.totalAmount,
-      customerName: orderConfirmed.customerName,
-      customerPhone: orderConfirmed.customerContact || orderConfirmed.customerPhone,
-      orderNumber: orderConfirmed.orderNumber,
-      customNote: orderConfirmed.upiTransactionNote || null
-    });
-
     return (
       <div className="max-w-md mx-auto px-4 py-8 text-center space-y-5 animate-fadeIn">
-        <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/40 border-2 border-[#C9A227] mx-auto flex items-center justify-center text-[#C9A227] shadow-lg">
-          <Clock className="w-9 h-9 animate-pulse" />
+        <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 mx-auto flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-lg">
+          <CheckCircle2 className="w-9 h-9" />
         </div>
 
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase font-bold tracking-caps px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-500/40">
-            PAYMENT STATUS: PENDING VERIFICATION
+        <div className="space-y-1.5">
+          <span className="text-[10px] uppercase font-bold tracking-caps px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+            ORDER PLACED • CASH ON DELIVERY
           </span>
           <h2 className="font-serif text-2xl font-bold text-gray-900 dark:text-[#fdfbf7] pt-1">
-            Order Queued: {orderConfirmed.orderNumber}
+            Your order is placed!
           </h2>
+          <p className="text-sm font-semibold text-[#C9A227] font-mono">
+            Order Reference: {orderConfirmed.orderNumber}
+          </p>
           <p className="text-xs text-gray-600 dark:text-[#99907c] max-w-sm mx-auto leading-relaxed">
-            Your UPI transaction note has been generated. As per Chakki Protocol, payment status will be updated to <strong>PAID / SUCCESS</strong> by the Chakki Administrator once verified.
+            You will get your order status on your <strong>"My Order"</strong> page.
           </p>
         </div>
-
-        {/* UPI QR & 1-Tap Pay Inset */}
-        {orderConfirmed.paymentMethod !== 'COD' && (
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] space-y-3 shadow-sm">
-            <span className="text-[10px] uppercase font-bold tracking-caps text-[#C9A227] block">
-              SCAN TO COMPLETE PAYMENT
-            </span>
-
-            <div className="p-3 bg-white w-44 h-44 mx-auto rounded-xl border-2 border-[#C9A227] shadow-md flex items-center justify-center">
-              <QRCodeSVG
-                value={confirmedUpi.uri}
-                size={150}
-                level="H"
-              />
-            </div>
-
-            <div className="space-y-1 text-left p-2.5 rounded-xl bg-gray-50 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20] text-xs">
-              <span className="text-[9px] uppercase font-bold text-gray-500 dark:text-[#8b826f] block">
-                Standard Transaction Note:
-              </span>
-              <code className="text-[#C9A227] font-mono font-semibold text-[11px] block break-all">
-                {confirmedUpi.note}
-              </code>
-            </div>
-
-            <a
-              href={confirmedUpi.uri}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] text-white dark:text-[#111111] font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-md block"
-            >
-              <span>Tap to Pay ₹{orderConfirmed.totalAmount} in UPI App</span>
-              <ArrowRight className="w-3.5 h-3.5 inline" />
-            </a>
-          </div>
-        )}
 
         {/* Delivery Details Snapshot */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] text-left text-xs space-y-2.5 shadow-sm">
@@ -679,21 +640,31 @@ export function CheckoutView({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500 dark:text-[#8b826f]">Assigned Dispatcher:</span>
-            <span className="text-sky-600 dark:text-sky-400 font-bold">{orderConfirmed.assignedDeliveryPersonName || orderConfirmed.assignedDP || 'Auto Assigned'}</span>
+            <span className="text-gray-500 dark:text-[#8b826f]">Payment Mode:</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">Cash on Delivery (COD)</span>
           </div>
           <div className="flex justify-between border-t border-gray-200 dark:border-[#2e2a20] pt-2 font-bold text-sm">
-            <span className="text-gray-900 dark:text-[#fdfbf7]">Total Payable:</span>
+            <span className="text-gray-900 dark:text-[#fdfbf7]">Total Payable (COD):</span>
             <span className="text-[#C9A227]">₹{orderConfirmed.totalAmount}</span>
           </div>
         </div>
 
-        <button
-          onClick={onBackToStudio}
-          className="w-full py-3.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-[#111111] hover:bg-[#C9A227] dark:hover:bg-[#C9A227] hover:text-white dark:hover:text-white font-sans font-bold text-xs uppercase tracking-caps shadow-md transition-all"
-        >
-          VIEW IN MY ORDERS TAB
-        </button>
+        <div className="space-y-2 pt-2">
+          <button
+            onClick={() => onNavigateToOrders ? onNavigateToOrders() : onBackToStudio()}
+            className="w-full py-3.5 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] text-white font-sans font-bold text-xs uppercase tracking-caps shadow-md transition-all flex items-center justify-center space-x-2"
+          >
+            <span>GO TO MY ORDERS</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={onBackToStudio}
+            className="w-full py-2.5 rounded-xl border border-gray-300 dark:border-[#2e2a20] text-gray-700 dark:text-[#d0c5af] hover:border-[#C9A227] font-sans font-semibold text-xs transition-all"
+          >
+            Continue Shopping
+          </button>
+        </div>
       </div>
     );
   }
@@ -1164,216 +1135,34 @@ export function CheckoutView({
       </div>
 
       {/* ========================================================
-          CARD 4: UPI PAYMENT OPTIONS
-          (Configured with BHARATPE2Y0C0P7Y9F19302@unitype)
+          CARD 4: PAYMENT METHOD (DEFAULT CASH ON DELIVERY)
           ======================================================== */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] space-y-3.5 shadow-sm">
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] space-y-3 shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-[11px] uppercase font-bold tracking-caps text-[#C9A227]">
-            PAYMENT OPTIONS
+            PAYMENT METHOD
           </span>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
-            Merchant UPI Verified
+          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full uppercase">
+            Default Mode
           </span>
         </div>
 
-        {/* Tab switch: 1-Tap UPI Apps vs Scan & Pay QR */}
-        <div className="grid grid-cols-2 p-1 rounded-xl bg-gray-100 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20]">
-          <button
-            onClick={() => setPaymentTab('1tap')}
-            className={`py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all ${
-              paymentTab === '1tap'
-                ? 'bg-[#C9A227] text-white dark:text-[#121212] shadow-sm'
-                : 'text-gray-500 dark:text-[#8b826f] hover:text-gray-900 dark:hover:text-[#fdfbf7]'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>1-Tap UPI Apps</span>
-          </button>
-
-          <button
-            onClick={() => setPaymentTab('qr')}
-            className={`py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all ${
-              paymentTab === 'qr'
-                ? 'bg-[#C9A227] text-white dark:text-[#121212] shadow-sm'
-                : 'text-gray-500 dark:text-[#8b826f] hover:text-gray-900 dark:hover:text-[#fdfbf7]'
-            }`}
-          >
-            <QrCode className="w-3.5 h-3.5" />
-            <span>Scan & Pay QR</span>
-          </button>
-        </div>
-
-        {/* Merchant UPI ID bar with Copy button */}
-        <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2e2a20] flex items-center justify-between text-xs">
-          <div>
-            <span className="text-[10px] text-gray-500 dark:text-[#8b826f] block uppercase font-medium">Merchant UPI VPA</span>
-            <span className="font-mono font-bold text-gray-900 dark:text-[#fdfbf7] text-[11px] sm:text-xs">{merchantUpiId}</span>
-          </div>
-          <button
-            onClick={handleCopyVpa}
-            className="py-1 px-2.5 rounded-lg border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227] hover:text-white dark:hover:text-[#121212] text-[10px] uppercase font-bold flex items-center space-x-1 transition-all"
-          >
-            {copiedVpa ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-            <span>{copiedVpa ? 'COPIED' : 'COPY'}</span>
-          </button>
-        </div>
-
-        {/* Dynamic UPI Transaction Note Display */}
-        <div className="p-2.5 rounded-xl bg-amber-50/60 dark:bg-[#1c1913] border border-amber-200 dark:border-[#C9A227]/30 flex items-center justify-between text-xs">
-          <div className="space-y-0.5 max-w-[80%]">
-            <span className="text-[9px] uppercase font-bold text-gray-500 dark:text-[#8b826f] block">
-              Dynamic Transaction Note:
-            </span>
-            <code className="text-[#C9A227] font-mono font-semibold text-[11px] block break-all">
-              {upiTransactionNote}
-            </code>
-          </div>
-          <button
-            onClick={handleCopyNote}
-            className="py-1 px-2 rounded-lg border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227] hover:text-white dark:hover:text-[#121212] text-[10px] uppercase font-bold flex items-center space-x-1 transition-all"
-            title="Copy Note"
-          >
-            {copiedNote ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-            <span>{copiedNote ? 'COPIED' : 'COPY'}</span>
-          </button>
-        </div>
-
-        {paymentTab === '1tap' ? (
-          <div className="space-y-2.5">
-            <p className="text-[11px] text-gray-500 dark:text-[#8b826f]">
-              Tap any UPI App to launch and complete payment instantly:
-            </p>
-
-            {/* Google Pay */}
-            <a
-              href={upiDeepLink}
-              onClick={() => setSelectedMethod('GPay')}
-              className="p-3 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2e2a20] hover:border-[#C9A227] flex items-center justify-between transition-all block cursor-pointer group shadow-sm"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-blue-600 shadow-sm border border-gray-100">
-                  G<span className="text-red-500">P</span><span className="text-amber-500">a</span><span className="text-green-600">y</span>
-                </div>
-                <div>
-                  <h4 className="font-sans font-bold text-xs text-gray-900 dark:text-[#fdfbf7]">Google Pay</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">Instant 1-tap checkout</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-1 text-xs font-bold text-[#C9A227] group-hover:translate-x-1 transition-transform">
-                <span>Pay ₹{totalPayable}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
-            </a>
-
-            {/* PhonePe */}
-            <a
-              href={upiDeepLink}
-              onClick={() => setSelectedMethod('PhonePe')}
-              className="p-3 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2e2a20] hover:border-[#C9A227] flex items-center justify-between transition-all block cursor-pointer group shadow-sm"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#5f259f] flex items-center justify-center text-xs font-bold text-white shadow-sm">
-                  पे
-                </div>
-                <div>
-                  <h4 className="font-sans font-bold text-xs text-gray-900 dark:text-[#fdfbf7]">PhonePe</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">UPI / Wallet / Cards</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-1 text-xs font-bold text-[#C9A227] group-hover:translate-x-1 transition-transform">
-                <span>Pay ₹{totalPayable}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
-            </a>
-
-            {/* Paytm UPI */}
-            <a
-              href={upiDeepLink}
-              onClick={() => setSelectedMethod('Paytm')}
-              className="p-3 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2e2a20] hover:border-[#C9A227] flex items-center justify-between transition-all block cursor-pointer group shadow-sm"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#002e6e] flex items-center justify-center text-[10px] font-bold text-[#00baf2] shadow-sm">
-                  Paytm
-                </div>
-                <div>
-                  <h4 className="font-sans font-bold text-xs text-gray-900 dark:text-[#fdfbf7]">Paytm UPI</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">Direct UPI transfer</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-1 text-xs font-bold text-[#C9A227] group-hover:translate-x-1 transition-transform">
-                <span>Pay ₹{totalPayable}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
-            </a>
-
-            {/* Inset VPA input */}
-            <div className="space-y-1 pt-1">
-              <span className="text-[10px] text-gray-500 dark:text-[#8b826f] block">
-                Or enter your Virtual Payment Address (UPI ID):
-              </span>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={vpaInput}
-                  onChange={(e) => setVpaInput(e.target.value)}
-                  placeholder="e.g. yourname@okhdfcbank"
-                  className="flex-1 p-2 rounded-xl bg-gray-50 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
-                />
-                <button
-                  onClick={handleVerifyVpa}
-                  className="py-2 px-3 rounded-xl border border-gray-300 dark:border-[#4d4635] hover:border-[#C9A227] text-xs text-gray-700 dark:text-[#d0c5af] hover:text-[#C9A227] font-bold uppercase transition-all"
-                >
-                  {vpaVerified ? 'VERIFIED' : 'VERIFY'}
-                </button>
-              </div>
-            </div>
-
-            {/* Cash on Delivery option */}
-            <div 
-              onClick={() => setSelectedMethod('COD')}
-              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                selectedMethod === 'COD' 
-                  ? 'border-[#C9A227] bg-amber-50/50 dark:bg-[#201c13]' 
-                  : 'border-gray-200 dark:border-[#2e2a20] bg-gray-50 dark:bg-[#141414]'
-              }`}
-            >
-              <div className="flex items-center space-x-2.5">
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  selectedMethod === 'COD' ? 'border-[#C9A227]' : 'border-gray-400 dark:border-[#4d4635]'
-                }`}>
-                  {selectedMethod === 'COD' && <div className="w-2 h-2 rounded-full bg-[#C9A227]" />}
-                </div>
-                <div>
-                  <h4 className="font-sans font-bold text-xs text-gray-900 dark:text-[#fdfbf7]">Cash on Delivery / Pay on Delivery</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">Pay via cash or UPI scan when fresh flour bag is delivered</p>
-                </div>
-              </div>
-              <span className="text-xs font-mono text-gray-500 dark:text-[#8b826f]">₹{totalPayable}</span>
-            </div>
-
-          </div>
-        ) : (
-          /* SCAN & PAY QR CODE */
-          <div className="text-center space-y-3 p-4 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2e2a20]">
-            <div className="p-3 bg-white w-48 h-48 mx-auto rounded-xl border-2 border-[#C9A227] shadow-md flex items-center justify-center">
-              <QRCodeSVG
-                value={upiDeepLink}
-                size={160}
-                level="H"
-              />
+        <div className="p-3.5 rounded-xl border border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-900 dark:text-[#fdfbf7]">Scan QR with Any UPI Application</p>
-              <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">GPay • PhonePe • Paytm • BHIM • CRED • Any Bank App</p>
+              <h4 className="font-sans font-bold text-xs text-gray-900 dark:text-[#fdfbf7] flex items-center gap-1.5">
+                Cash on Delivery (COD)
+              </h4>
+              <p className="text-[10px] text-gray-500 dark:text-[#8b826f] mt-0.5">
+                Pay with cash or scan delivery person's UPI QR upon fresh doorstep delivery.
+              </p>
             </div>
           </div>
-        )}
-
+          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{totalPayable}</span>
+        </div>
       </div>
 
       {/* ========================================================
@@ -1414,9 +1203,7 @@ export function CheckoutView({
                 ? 'LOGIN REQUIRED TO PLACE ORDER' 
                 : !isDeliveryComplete 
                 ? 'COMPLETE DELIVERY DETAILS' 
-                : selectedMethod === 'COD'
-                ? `CONFIRM ORDER (COD ₹${totalPayable})`
-                : `PAY ₹${totalPayable} & PLACE ORDER`}
+                : `PLACE ORDER (CASH ON DELIVERY • ₹${totalPayable})`}
             </span>
             {!isSubmitting && <ArrowRight className="w-4 h-4 stroke-[3]" />}
           </button>

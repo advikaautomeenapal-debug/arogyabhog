@@ -227,8 +227,7 @@ export function App() {
     setOrders(prev => [newOrder, ...prev]);
     setCart([]);
     localStorage.removeItem('arogyabhog_cart');
-    setCurrentTab('orders');
-    showToast(`Order ${newOrder.orderNumber} Queued! Payment verification pending.`);
+    showToast(`Your order is placed! You will get your order status on your My Order page.`);
   };
 
   // Ayurvedic AI -> Custom Blender transition
@@ -355,6 +354,7 @@ export function App() {
               operationalCosts={operationalCosts}
               onBackToStudio={() => setCurrentTab('flourStudio')}
               onOrderSuccess={handleOrderSuccess}
+              onNavigateToOrders={() => setCurrentTab('orders')}
               onOpenAuth={() => setIsAuthOpen(true)}
             />
           </ErrorBoundary>

@@ -148,16 +148,8 @@ export function FlourStudioView({
 
   // Add Pre-Blend Product to Cart
   const handleAddProductToCart = (product) => {
-    const selectedSize = packSizes[product._id];
-    
-    // Require explicit 5 kg or 10 kg selection
-    if (!selectedSize) {
-      setProductValidationErrors(prev => ({
-        ...prev,
-        [product._id]: 'Please select a package size (5 kg or 10 kg) before adding to cart.'
-      }));
-      return;
-    }
+    // Default to 5 kg if not explicitly selected for seamless 1-tap mobile checkout
+    const selectedSize = packSizes[product._id] || 5;
 
     if (addingProductId === product._id) return; // Prevent duplicate clicks
     setAddingProductId(product._id);
@@ -517,42 +509,42 @@ export function FlourStudioView({
                 return (
                   <div
                     key={product._id}
-                    className="p-5 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227]/70 transition-all space-y-3.5 relative shadow-sm group"
+                    className="p-3.5 sm:p-5 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227]/70 transition-all space-y-2.5 sm:space-y-3.5 relative shadow-sm group"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <span className={`inline-flex items-center text-[10px] font-bold tracking-caps uppercase px-2.5 py-1 rounded-lg border ${badgeColorClass}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 sm:space-y-1">
+                        <span className={`inline-flex items-center text-[9px] sm:text-[10px] font-bold tracking-caps uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border ${badgeColorClass}`}>
                           {product.badge}
                         </span>
-                        <h3 className="font-editorial text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors">
+                        <h3 className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-tight">
                           {product.name}
                         </h3>
                         {product.tagline && (
-                          <p className="font-sans text-xs text-[#C9A227] italic">
+                          <p className="font-sans text-[11px] sm:text-xs text-[#C9A227] italic line-clamp-1 sm:line-clamp-none">
                             {product.tagline}
                           </p>
                         )}
                       </div>
 
-                      <div className="text-right flex-shrink-0 pl-3">
+                      <div className="text-right flex-shrink-0 pl-2">
                         {product.mrpPrice > product.sellingPrice && (
-                          <span className="text-xs text-gray-400 dark:text-[#99907C] line-through block">
-                            ₹{selectedSize ? Math.round(product.mrpPrice * selectedSize) : product.mrpPrice}
+                          <span className="text-[10px] sm:text-xs text-gray-400 dark:text-[#99907C] line-through block">
+                            ₹{Math.round(product.mrpPrice * currentPack)}
                           </span>
                         )}
-                        <div className="flex items-baseline space-x-0.5">
-                          <span className="font-sans font-bold text-xl md:text-2xl text-gray-900 dark:text-[#FDFBF7]">
-                            ₹{selectedSize ? packPrice : product.sellingPrice}
+                        <div className="flex items-baseline justify-end space-x-0.5">
+                          <span className="font-sans font-bold text-lg sm:text-xl md:text-2xl text-gray-900 dark:text-[#FDFBF7]">
+                            ₹{packPrice}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-[#99907C]">
-                            {selectedSize ? ` (${selectedSize} kg)` : '/kg'}
+                          <span className="text-[10px] sm:text-xs text-gray-500 dark:text-[#99907C]">
+                            ({currentPack} kg)
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Exact Grain Composition */}
-                    <div className="space-y-1.5 pt-1">
+                    {/* Exact Grain Composition - HIDDEN ON MOBILE FOR COMPACT VIEW */}
+                    <div className="hidden md:block space-y-1.5 pt-1">
                       <div className="flex items-center justify-between text-[10px] uppercase tracking-caps">
                         <span className="text-gray-500 dark:text-[#8B826F] font-bold">
                           EXACT GRAIN COMPOSITION:
@@ -576,91 +568,84 @@ export function FlourStudioView({
 
                     {/* Pending Cost Notice (e.g. RM-018 Methi Seeds in Vitality Atta) */}
                     {product.costBreakdown?.hasIncompleteCost && (
-                      <div className="p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-600/40 text-amber-900 dark:text-amber-300 text-xs flex items-center space-x-2">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-600/40 text-amber-900 dark:text-amber-300 text-[11px] sm:text-xs flex items-center space-x-2">
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
                         <span><strong>Rate Notice:</strong> {product.costBreakdown.incompleteCostReason || 'Ingredient rate awaiting admin quotation.'}</span>
                       </div>
                     )}
 
                     {product.target && (
-                      <p className="text-[11px] text-gray-600 dark:text-[#99907C] border-l-2 border-[#C9A227]/40 pl-2.5 py-0.5">
+                      <p className="hidden sm:block text-[11px] text-gray-600 dark:text-[#99907C] border-l-2 border-[#C9A227]/40 pl-2.5 py-0.5">
                         <strong className="text-gray-900 dark:text-[#D0C5AF]">Target:</strong> {product.target}
                       </p>
                     )}
 
-                    {/* Validation Message if customer clicks without selecting size */}
-                    {hasValidationError && (
-                      <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-400 text-xs flex items-center space-x-1.5">
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>{productValidationErrors[product._id]}</span>
-                      </div>
-                    )}
-
-                    {/* REQUIREMENT 4 & 10: PACKAGE SIZE SELECTION (ONLY 5 KG & 10 KG, NOT SELECTED AUTOMATICALLY) */}
-                    <div className="pt-3 border-t border-gray-100 dark:border-[#2E2A20] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-500 dark:text-[#99907C] uppercase font-bold tracking-wider">
-                          Size:
-                        </span>
-                        <div className="flex border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] rounded-xl p-0.5">
-                          <button
-                            onClick={() => handleSelectPackSize(product._id, 5)}
-                            className={`px-3 py-1.5 text-xs font-bold uppercase rounded-lg transition-all ${
-                              selectedSize === 5
-                                ? 'bg-[#C9A227] text-white shadow-sm'
-                                : 'text-gray-600 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
-                            }`}
-                          >
-                            5 kg
-                          </button>
-                          <button
-                            onClick={() => handleSelectPackSize(product._id, 10)}
-                            className={`px-3 py-1.5 text-xs font-bold uppercase rounded-lg transition-all ${
-                              selectedSize === 10
-                                ? 'bg-[#C9A227] text-white shadow-sm'
-                                : 'text-gray-600 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
-                            }`}
-                          >
-                            10 kg
-                          </button>
-                        </div>
-                        {!selectedSize && (
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium italic">
-                            Select package size
+                    {/* Action Bar: Size Switcher & High-Visibility Prominent Add to Cart Button */}
+                    <div className="pt-2 sm:pt-3 border-t border-gray-100 dark:border-[#2E2A20] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                      <div className="flex items-center justify-between sm:justify-start space-x-2">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-[11px] sm:text-xs text-gray-500 dark:text-[#99907C] uppercase font-bold tracking-wider">
+                            Size:
                           </span>
-                        )}
-                      </div>
+                          <div className="flex border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] rounded-xl p-0.5">
+                            <button
+                              onClick={() => handleSelectPackSize(product._id, 5)}
+                              className={`px-3 py-1 sm:py-1.5 text-xs font-bold uppercase rounded-lg transition-all ${
+                                currentPack === 5
+                                  ? 'bg-[#C9A227] text-white shadow-sm'
+                                  : 'text-gray-600 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
+                              }`}
+                            >
+                              5 kg
+                            </button>
+                            <button
+                              onClick={() => handleSelectPackSize(product._id, 10)}
+                              className={`px-3 py-1 sm:py-1.5 text-xs font-bold uppercase rounded-lg transition-all ${
+                                currentPack === 10
+                                  ? 'bg-[#C9A227] text-white shadow-sm'
+                                  : 'text-gray-600 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
+                              }`}
+                            >
+                              10 kg
+                            </button>
+                          </div>
+                        </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* REQUIREMENT 3B: LOAD PREBUILT BLEND INTO CUSTOM BLENDER */}
+                        {/* Mobile-only secondary customize button */}
                         <button
                           type="button"
                           onClick={() => handleCustomizePrebuilt(product)}
-                          className="py-2.5 px-3.5 rounded-xl border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-1.5 transition-all shadow-sm"
+                          className="sm:hidden py-1 px-2.5 rounded-lg border border-[#C9A227]/50 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 transition-all"
+                          title="Customize in blender"
+                        >
+                          <Sliders className="w-3 h-3" />
+                          <span>Customize</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* Desktop Customize Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleCustomizePrebuilt(product)}
+                          className="hidden sm:inline-flex py-2.5 px-3.5 rounded-xl border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-xs uppercase tracking-caps items-center justify-center space-x-1.5 transition-all shadow-sm"
                           title={`Customize ${product.name} recipe in Chakki Blender`}
                         >
                           <Sliders className="w-3.5 h-3.5" />
                           <span>Customize Recipe</span>
                         </button>
 
-                        {/* Standard Add to Cart button */}
+                        {/* High Visibility, Prominent Add to Cart Button */}
                         <button
                           onClick={() => handleAddProductToCart(product)}
                           disabled={isAdding}
-                          className={`py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md group ${
-                            selectedSize 
-                              ? 'bg-[#C9A227] hover:bg-[#B58F1E] text-white cursor-pointer' 
-                              : 'bg-gray-100 dark:bg-[#252525] border border-gray-300 dark:border-[#333333] text-gray-500 dark:text-gray-400 hover:border-[#C9A227]'
-                          }`}
-                          title={selectedSize ? `Add ${product.name} (${selectedSize} kg) to Cart` : 'Select 5 kg or 10 kg first'}
+                          className="flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md bg-[#C9A227] hover:bg-[#B58F1E] active:scale-[0.98] text-white cursor-pointer"
                         >
                           <ShoppingCart className="w-4 h-4 stroke-[2.2]" />
                           <span>
                             {isAdding 
                               ? 'Adding...' 
-                              : selectedSize 
-                              ? `Add to Cart (${selectedSize}kg - ₹${packPrice})` 
-                              : 'Add to Cart'}
+                              : `Add to Cart • ₹${packPrice}`}
                           </span>
                         </button>
                       </div>
@@ -670,41 +655,41 @@ export function FlourStudioView({
               })}
 
               {/* PRODUCT 6: MY CHOICE ATTA (Bespoke Customer Blend strictly 10 kg) */}
-              <div className="p-5 bg-gradient-to-br from-amber-500/10 via-[#C9A227]/10 to-transparent dark:bg-[#1f1d14] border-2 border-[#C9A227] rounded-2xl space-y-3.5 relative shadow-md">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <span className="inline-flex items-center text-[10px] font-bold tracking-caps uppercase px-2.5 py-1 rounded-lg border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
+              <div className="p-3.5 sm:p-5 bg-gradient-to-br from-amber-500/10 via-[#C9A227]/10 to-transparent dark:bg-[#1f1d14] border-2 border-[#C9A227] rounded-2xl space-y-2.5 sm:space-y-3.5 relative shadow-md">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold tracking-caps uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
                       CUSTOMER BESPOKE BLEND • STRICTLY 10 KG
                     </span>
-                    <h3 className="font-editorial text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7]">
+                    <h3 className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7]">
                       My Choice Atta
                     </h3>
-                    <p className="font-sans text-xs text-[#C9A227] italic">
+                    <p className="font-sans text-[11px] sm:text-xs text-[#C9A227] italic">
                       Customer-Customizable Bespoke Grain Flour Laboratory
                     </p>
                   </div>
 
-                  <div className="text-right flex-shrink-0 pl-3">
-                    <span className="font-sans font-bold text-xl md:text-2xl text-[#C9A227]">
+                  <div className="text-right flex-shrink-0 pl-2">
+                    <span className="font-sans font-bold text-lg sm:text-xl md:text-2xl text-[#C9A227]">
                       ₹85
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-[#99907C] block">
+                    <span className="text-[10px] sm:text-xs text-gray-500 dark:text-[#99907C] block">
                       /kg (Avg) • 10 kg Batch
                     </span>
                   </div>
                 </div>
 
-                <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
+                <p className="font-sans text-[11px] sm:text-xs text-gray-600 dark:text-[#99907C] leading-relaxed hidden sm:block">
                   Your personal flour laboratory. Hand-select your preferred whole grains, ancient millets, pulses, and seeds from our 18 master ingredients to total exactly 10 kg. Ground fresh upon order placement.
                 </p>
 
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#C9A227]/30">
-                  <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-t border-[#C9A227]/30">
+                  <span className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-400 font-medium">
                     ✓ Custom fineness • Live pricing • Full ingredient control
                   </span>
                   <button
                     onClick={() => setActiveTab('customBlender')}
-                    className="py-2.5 px-5 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer"
+                    className="w-full sm:w-auto py-2.5 px-4 sm:px-5 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer"
                   >
                     <Sliders className="w-4 h-4" />
                     <span>Open Custom Blender (10 kg)</span>
@@ -1264,6 +1249,142 @@ export function FlourStudioView({
 
           </div>
         )}
+
+        {/* ========================================================
+            SEO SEARCH ENGINE OPTIMIZATION & HEALTH FLOURS GUIDE
+            Targeted Keywords: Traditional Atta, Ayurvedic Atta, Arogya Bhog, 
+            Aarog Bhog, High Protein Atta, Thyroid Atta, Thyrocare Atta, 
+            Sugar Care Atta, Sugar Atta, Diabetic Atta, Atta for Diabetic Patient, 
+            Atta for Thyroid Patient, Atta for Good Health, Multigrain Atta, 
+            Thyroid Multigrain Atta, High Protein Multigrain Atta, Vitality Atta
+            ======================================================== */}
+        <section aria-label="ArogyaBhog Traditional & Ayurvedic Atta Guide" className="mt-12 pt-8 border-t border-gray-200 dark:border-[#2E2A20] space-y-8">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-caps text-[#C9A227] px-3 py-1 rounded-full bg-amber-50 dark:bg-[#1A1A1A] border border-[#C9A227]/40 inline-block">
+              Pure Artisanal Stone Chakki Milling
+            </span>
+            <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-gray-900 dark:text-[#FDFBF7]">
+              Traditional & Ayurvedic Atta for Good Health
+            </h2>
+            <p className="font-sans text-xs sm:text-sm text-gray-600 dark:text-[#99907C] leading-relaxed">
+              At <strong>Arogya Bhog (Aarog Bhog)</strong>, we revive traditional Ayurvedic wellness with slow natural stone-milled flours. Cold-milled below 35°C to preserve live wheat germ, active digestive enzymes, and essential dietary bran.
+            </p>
+          </div>
+
+          {/* Grid of Targeted Health Flour Formulations */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* 1. Sugar Care / Diabetic Atta */}
+            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700">
+                  Low GI Formulation
+                </span>
+                <span className="text-[10px] font-bold text-[#C9A227]">Doctor Certified</span>
+              </div>
+              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
+                Sugar Care Atta • Diabetic Atta
+              </h3>
+              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
+                Specially crafted <strong>atta for diabetic patients</strong> and blood sugar management. Combines low-glycemic ancient grains like jau (barley), ragi, roasted chana, and fenugreek seeds to slow carbohydrate absorption and avoid post-meal glucose spikes.
+              </p>
+              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Diabetic Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Sugar Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Atta for Diabetic Patient</span>
+              </div>
+            </article>
+
+            {/* 2. Thyrocare / Thyroid Atta */}
+            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-300 dark:border-purple-700">
+                  Endocrine Balance
+                </span>
+                <span className="text-[10px] font-bold text-[#C9A227]">Mineral Enriched</span>
+              </div>
+              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
+                Thyrocare Atta • Thyroid Multigrain Atta
+              </h3>
+              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
+                The recommended <strong>atta for thyroid patients</strong>. Naturally enriched with selenium, zinc, tyrosine, pumpkin seeds, and therapeutic grains to nourish endocrine pathways, sustain metabolic balance, and help manage weight.
+              </p>
+              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Thyroid Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Thyrocare Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Atta for Thyroid Patient</span>
+              </div>
+            </article>
+
+            {/* 3. High Protein Multigrain Atta */}
+            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-md border border-sky-300 dark:border-sky-700">
+                  100% Plant Protein
+                </span>
+                <span className="text-[10px] font-bold text-[#C9A227]">High Fibre</span>
+              </div>
+              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
+                High Protein Multigrain Atta
+              </h3>
+              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
+                Nutrient-rich <strong>high protein atta for good health</strong>, daily stamina, and muscle repair. Combining roasted Bengal gram, organic soya, millets, and MP Sharbati wheat, offering a complete plant protein profile for the whole family.
+              </p>
+              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">High Protein Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Multigrain Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Atta for Good Health</span>
+              </div>
+            </article>
+
+            {/* 4. Vitality Atta & Ayurvedic Atta */}
+            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-300 dark:border-rose-700">
+                  Daily Immune Vitality
+                </span>
+                <span className="text-[10px] font-bold text-[#C9A227]">100% Pure Grains</span>
+              </div>
+              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
+                Vitality Atta • Traditional Ayurvedic Atta
+              </h3>
+              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
+                Formulated with 7 ancient whole grains and seeds for long-term gut immunity and digestive vitality. Stone milled fresh strictly upon order placement with zero chemical bleaching and zero synthetic additives.
+              </p>
+              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Vitality Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Ayurvedic Atta</span>
+                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Traditional Atta</span>
+              </div>
+            </article>
+          </div>
+
+          {/* Popular Search Keywords Cloud */}
+          <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-[#1A1A1A] border border-amber-200 dark:border-[#2E2A20] text-center space-y-2.5">
+            <h4 className="text-xs uppercase font-bold tracking-wider text-gray-700 dark:text-[#D0C5AF]">
+              Popular Searches & ArogyaBhog Health Flours
+            </h4>
+            <div className="flex flex-wrap justify-center gap-1.5 text-[11px] text-gray-600 dark:text-[#99907C]">
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Traditional Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Ayurvedic Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Arogya Bhog</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Aarog Bhog</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">High Protein Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyroid Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyrocare Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Sugar Care Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Sugar Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Diabetic Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Atta for Diabetic Patient</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Atta for Thyroid Patient</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Atta for Good Health</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Multigrain Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyroid Multigrain Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">High Protein Multigrain Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Vitality Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Fresh Stone Chakki Atta</span>
+            </div>
+          </div>
+        </section>
 
       </div>
 

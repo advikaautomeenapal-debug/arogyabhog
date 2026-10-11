@@ -1,0 +1,15 @@
+# Robots.txt for ArogyaBhog (Aarog Bhog) Storefront
+User-agent: *
+Allow: /
+Allow: /flourStudio
+Allow: /ayurvedicAI
+Allow: /orders
+Allow: /favicon.png
+Allow: /arogyaBhog_logo.png
+
+# Disallow internal control surfaces from indexing
+Disallow: /admin
+Disallow: /delivery
+Disallow: /api/
+
+Sitemap: https://arogyabhog.com/sitemap.xml

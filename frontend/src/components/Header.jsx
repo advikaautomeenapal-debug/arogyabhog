@@ -20,44 +20,40 @@ export function Header({
   const isDelivery = user && user.role === 'delivery';
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-b border-gray-200 dark:border-[#2E2A20] px-4 py-3 transition-colors">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-b border-gray-200 dark:border-[#2E2A20] px-3 sm:px-4 py-2 sm:py-3 transition-colors">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
         
         {/* Official Brand Heraldry: AB Emblem & Arogyabhog Wordmark */}
         <div 
           onClick={() => onNavigate('flourStudio')} 
-          className="flex items-center space-x-2.5 md:space-x-3 cursor-pointer group"
+          className="flex items-center space-x-2 sm:space-x-2.5 md:space-x-3 cursor-pointer group min-w-0"
         >
-          <div className="w-10 h-10 md:w-11 md:h-11 flex-shrink-0 flex items-center justify-center rounded-xl border border-[#C9A227]/40 bg-amber-50/60 dark:bg-[#1B1B1C] shadow-sm group-hover:border-[#C9A227] transition-all">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 flex-shrink-0 flex items-center justify-center rounded-xl border border-[#C9A227]/40 bg-amber-50/60 dark:bg-[#1B1B1C] shadow-sm group-hover:border-[#C9A227] transition-all">
             <img 
               src="/arogyaBhog_logo.png" 
               alt="Arogyabhog Emblem" 
-              className="w-8 h-8 md:w-9 md:h-9 object-contain"
+              className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 object-contain"
             />
           </div>
 
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center space-x-1.5">
-              <h3 style={{
-                fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
-                fontSize: '64px',
-                fontWeight: 'normal',
-                fontStyle: 'italic',
-                color: '#D4AF70',
-                textAlign: 'center',
-                textShadow: '1px 2px 3px #5C4525',
-                margin: 0,
-                lineHeight: 1
-              }}>
+          <div className="flex flex-col justify-center min-w-0">
+            <div className="flex items-center space-x-1 sm:space-x-1.5">
+              <h2 
+                className="text-2xl sm:text-3xl md:text-4xl font-normal italic text-[#D4AF70] m-0 leading-none truncate select-none"
+                style={{
+                  fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
+                  textShadow: '1px 1px 2px #5C4525'
+                }}
+              >
                 Arogyabhog
-              </h3>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              </h2>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
             </div>
           </div>
         </div>
 
-        {/* Navigation Links for Desktop */}
-        <div className="flex items-center space-x-2 md:space-x-4">
+        {/* Navigation Links for Desktop, Theme Switcher & Cart */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-4 flex-shrink-0">
           
           {/* USER NAVIGATION (ALWAYS ACTIVE ON STOREFRONT) */}
           <div className="hidden md:flex items-center space-x-6 text-xs uppercase tracking-caps font-semibold mr-2">
@@ -122,7 +118,7 @@ export function Header({
             onClick={onToggleTheme}
             aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            className="p-2 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#1A1A1A] text-gray-700 dark:text-[#C9A227] hover:border-[#C9A227] transition-all"
+            className="p-1.5 sm:p-2 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#1A1A1A] text-gray-700 dark:text-[#C9A227] hover:border-[#C9A227] transition-all flex items-center justify-center flex-shrink-0"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-[#C9A227] transition-transform hover:rotate-45" />
@@ -135,7 +131,8 @@ export function Header({
           {!isAdmin && !isDelivery && (
             <button
               onClick={onOpenCart}
-              className="flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#1A1A1A] hover:border-[#C9A227] transition-all group"
+              aria-label="Open Cart"
+              className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#1A1A1A] hover:border-[#C9A227] transition-all group flex-shrink-0"
             >
               <div className="relative">
                 <ShoppingBag className="w-4 h-4 text-[#C9A227] group-hover:scale-110 transition-transform" />
@@ -157,9 +154,9 @@ export function Header({
             </button>
           )}
 
-          {/* User Profile / Auth Button (Customer logout button removed per Requirement 7) */}
+          {/* User Profile / Auth Button */}
           {user ? (
-            <div className="flex items-center space-x-2 pl-1">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 pl-0.5 sm:pl-1 flex-shrink-0">
               <button
                 onClick={onOpenAuth}
                 className="flex items-center space-x-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] transition-all bg-gray-50 dark:bg-[#1A1A1A]"
@@ -190,7 +187,7 @@ export function Header({
           ) : (
             <button
               onClick={onOpenAuth}
-              className="px-3.5 py-1.5 rounded-xl border border-[#C9A227] bg-[#C9A227]/10 hover:bg-[#C9A227] hover:text-white text-[#C9A227] text-xs font-bold uppercase tracking-wider transition-all"
+              className="px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl border border-[#C9A227] bg-[#C9A227]/10 hover:bg-[#C9A227] hover:text-white text-[#C9A227] text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex-shrink-0"
             >
               Sign In
             </button>

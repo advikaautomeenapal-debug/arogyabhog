@@ -33,6 +33,11 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Configured CORS Allowlist matching subdomains and local development
+const extraOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 const configuredOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
@@ -42,15 +47,15 @@ const configuredOrigins = [
   process.env.CUSTOMER_BASE_URL,
   process.env.ADMIN_BASE_URL,
   process.env.DELIVERY_BASE_URL,
-  process.env.CORS_ORIGINS
+  ...extraOrigins
 ].filter(Boolean).map(o => o.trim().replace(/\/$/, ''));
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || process.env.NODE_ENV !== 'production') {
+    if (!origin || process.env.NODE_ENV !== 'production' || configuredOrigins.includes('*')) {
       return callback(null, true);
     }
-    if (configuredOrigins.includes(origin) || configuredOrigins.includes('*')) {
+    if (configuredOrigins.includes(origin) || origin.endsWith('.netlify.app') || origin.endsWith('.onrender.com')) {
       return callback(null, true);
     }
     const isSubdomainAllowed = configuredOrigins.some(base => {
