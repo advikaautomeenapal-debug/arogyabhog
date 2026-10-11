@@ -4,15 +4,15 @@ const siteContentSchema = new mongoose.Schema({
   key: { type: String, required: true, unique: true, default: 'main_config' },
   topBannerText: { 
     type: String, 
-    default: '100% Traditional Slow Stone Cold-Ground • Below 35°C' 
+    default: '' 
   },
   topBannerBadge: { 
     type: String, 
-    default: 'Zero Preservatives' 
+    default: '' 
   },
   topBannerActive: { 
     type: Boolean, 
-    default: true 
+    default: false 
   },
   brandTagline: { 
     type: String, 

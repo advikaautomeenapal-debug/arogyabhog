@@ -118,6 +118,11 @@ export function OrdersView({ orders, onNavigateToStudio }) {
                     <span className="font-sans font-bold text-lg text-[#C9A227] block">
                       ₹{order.totalAmount}
                     </span>
+                    {order.couponCode && (
+                      <span className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400 block">
+                        Coupon {order.couponCode} (-₹{order.discountAmount})
+                      </span>
+                    )}
 
                     {/* PAYMENT STATUS BADGE */}
                     {isPaymentPending ? (

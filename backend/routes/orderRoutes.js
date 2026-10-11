@@ -6,9 +6,11 @@ const Product = require('../models/Product');
 const InventoryLog = require('../models/InventoryLog');
 const User = require('../models/User');
 const OperationalCost = require('../models/OperationalCost');
+const Coupon = require('../models/Coupon');
 const { protect, adminOnly, deliveryOrAdmin, optionalAuth } = require('../middleware/authMiddleware');
 const { evaluateServiceability } = require('./deliveryAreaRoutes');
 const { resolveGrainDoc } = require('../utils/grainResolver');
+const { normalizePhone } = require('../utils/phoneHelper');
 
 // Calculate 16 nutrients for an item's confirmed grain breakdown
 const calculateItemNutritionSnapshot = (grainBreakdown, batchSizeKg, quantity, grainMap, allGrains) => {
@@ -149,11 +151,17 @@ router.get('/', optionalAuth, async (req, res) => {
       if (req.user.role === 'delivery') {
         filter.assignedDeliveryPerson = req.user._id;
       } else if (req.user.role === 'user') {
-        filter.$or = [
-          { customerId: req.user._id },
-          { customerEmail: req.user.email },
-          { customerPhone: req.user.phone }
+        const userOrConditions = [
+          { customerId: req.user._id }
         ];
+        if (req.user.phone) {
+          userOrConditions.push({ customerPhone: req.user.phone });
+          userOrConditions.push({ customerContact: req.user.phone });
+        }
+        if (req.user.email) {
+          userOrConditions.push({ customerEmail: req.user.email });
+        }
+        filter.$or = userOrConditions;
       }
       // If admin, unrestricted view across all customer and delivery orders
     } else {
@@ -573,7 +581,85 @@ router.post('/', async (req, res) => {
       }
     }
 
-    const discountAmount = Number(req.body.discountAmount) || 0;
+    // ========================================================
+    // COUPON & DISCOUNT VERIFICATION
+    // No automatic introductory discount. Discounts are ONLY
+    // applicable via verified single-use coupon codes.
+    // ========================================================
+    let verifiedDiscount = 0;
+    let verifiedCouponCode = '';
+    let couponDoc = null;
+
+    const requestedCoupon = (req.body.couponCode || '').trim().toUpperCase();
+    if (requestedCoupon) {
+      const cleanPhone = normalizePhone(contactNumber);
+      couponDoc = await Coupon.findOne({ code: requestedCoupon });
+
+      if (!couponDoc) {
+        return res.status(400).json({
+          success: false,
+          message: `Coupon code "${requestedCoupon}" is invalid.`
+        });
+      }
+
+      if (!couponDoc.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: `Coupon code "${requestedCoupon}" is inactive or has been disabled.`
+        });
+      }
+
+      if (couponDoc.expiresAt && new Date(couponDoc.expiresAt) < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: `Coupon code "${requestedCoupon}" has expired.`
+        });
+      }
+
+      if (couponDoc.minOrderValue > 0 && calculatedTotal < couponDoc.minOrderValue) {
+        return res.status(400).json({
+          success: false,
+          message: `Coupon requires a minimum items total of ₹${couponDoc.minOrderValue}.`
+        });
+      }
+
+      if (couponDoc.maxUsesTotal && couponDoc.usedCount >= couponDoc.maxUsesTotal) {
+        return res.status(400).json({
+          success: false,
+          message: `Coupon "${requestedCoupon}" has reached its maximum redemption limit.`
+        });
+      }
+
+      if (couponDoc.assignedToPhone) {
+        const assignedClean = normalizePhone(couponDoc.assignedToPhone);
+        if (cleanPhone !== assignedClean) {
+          return res.status(400).json({
+            success: false,
+            message: `Coupon "${requestedCoupon}" is valid only for registered mobile number ending in ${assignedClean.slice(-4)}.`
+          });
+        }
+      }
+
+      if (couponDoc.isSingleUsePerCustomer && cleanPhone) {
+        const alreadyUsed = couponDoc.usedBy.some(u => normalizePhone(u.customerPhone) === cleanPhone);
+        if (alreadyUsed) {
+          return res.status(400).json({
+            success: false,
+            message: `You have already used coupon code "${requestedCoupon}". Each coupon can only be used once per customer.`
+          });
+        }
+      }
+
+      // Calculate server-verified discount
+      if (couponDoc.discountType === 'PERCENT') {
+        verifiedDiscount = Math.min(Math.round((calculatedTotal * couponDoc.discountAmount) / 100), calculatedTotal);
+      } else {
+        verifiedDiscount = Math.min(couponDoc.discountAmount, calculatedTotal);
+      }
+      verifiedCouponCode = couponDoc.code;
+    }
+
+    const discountAmount = verifiedDiscount;
     const finalAmount = Math.max(0, calculatedTotal - discountAmount);
 
     // Calculate itemized operational costs
@@ -827,6 +913,7 @@ router.post('/', async (req, res) => {
         perBatch: perBatchSnapshot
       },
       discountAmount,
+      couponCode: verifiedCouponCode,
       deliveryFee: 0,
       paymentMethod: req.body.paymentMethod || 'UPI',
       paymentStatus: assignedPaymentStatus,
@@ -904,6 +991,28 @@ router.post('/', async (req, res) => {
       }
 
       savedOrder = await newOrder.save();
+
+      // Record coupon redemption if a coupon was applied
+      if (couponDoc && verifiedDiscount > 0) {
+        try {
+          couponDoc.usedBy.push({
+            customerId: req.body.customerId || (req.user ? req.user._id : null),
+            customerPhone: normalizePhone(contactNumber),
+            customerName: customerName,
+            orderId: savedOrder._id,
+            orderNumber: savedOrder.orderNumber,
+            discountApplied: verifiedDiscount,
+            usedAt: new Date()
+          });
+          couponDoc.usedCount = (couponDoc.usedCount || 0) + 1;
+          if (couponDoc.maxUsesTotal && couponDoc.usedCount >= couponDoc.maxUsesTotal) {
+            couponDoc.isActive = false;
+          }
+          await couponDoc.save();
+        } catch (couponSaveErr) {
+          console.error('Error recording coupon redemption:', couponSaveErr);
+        }
+      }
 
       // If location is serviceable, reserve stock atomically and record in InventoryLog
       if (serviceability.serviceable) {

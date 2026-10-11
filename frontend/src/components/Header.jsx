@@ -31,7 +31,7 @@ export function Header({
           <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 flex-shrink-0 flex items-center justify-center rounded-xl border border-[#C9A227]/40 bg-amber-50/60 dark:bg-[#1B1B1C] shadow-sm group-hover:border-[#C9A227] transition-all">
             <img 
               src="/arogyaBhog_logo.png" 
-              alt="Arogyabhog Emblem" 
+              alt="Arogya Bhog Emblem" 
               className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 object-contain"
             />
           </div>
@@ -45,7 +45,7 @@ export function Header({
                   textShadow: '1px 1px 2px #5C4525'
                 }}
               >
-                Arogyabhog
+                Arogya Bhog
               </h2>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
             </div>
@@ -127,12 +127,12 @@ export function Header({
             )}
           </button>
 
-          {/* Cart Status Pill (For customers only) */}
+          {/* Cart Status Pill (Desktop only - mobile uses bottom navigation bar) */}
           {!isAdmin && !isDelivery && (
             <button
               onClick={onOpenCart}
               aria-label="Open Cart"
-              className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#1A1A1A] hover:border-[#C9A227] transition-all group flex-shrink-0"
+              className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#1A1A1A] hover:border-[#C9A227] transition-all group flex-shrink-0"
             >
               <div className="relative">
                 <ShoppingBag className="w-4 h-4 text-[#C9A227] group-hover:scale-110 transition-transform" />

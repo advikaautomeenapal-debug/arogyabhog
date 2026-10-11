@@ -171,6 +171,7 @@ const orderSchema = new mongoose.Schema({
     }
   },
   discountAmount: { type: Number, default: 0 },
+  couponCode: { type: String, default: '', uppercase: true, trim: true },
   deliveryFee: { type: Number, default: 0 },
   paymentMethod: { type: String, default: 'UPI' },
   paymentStatus: { 

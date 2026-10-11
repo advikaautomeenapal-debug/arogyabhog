@@ -1,20 +1,27 @@
 import React from 'react';
-import { Sparkles, Bot, Clock, User, SlidersHorizontal, Truck } from 'lucide-react';
+import { Sparkles, Bot, Clock, ShoppingBag, SlidersHorizontal, Truck } from 'lucide-react';
 
-export function BottomNav({ currentTab, onSelectTab, user, onOpenAuth }) {
+export function BottomNav({ currentTab, onSelectTab, user, cart = [], onOpenCart, onOpenAuth }) {
   // REQUIREMENT 9: Do not render menu bar on checkout view so Place Order CTA is never hidden
   if (currentTab === 'checkout') {
     return null;
   }
 
+  const totalBags = (cart || []).reduce((acc, item) => acc + (item.quantity || 1), 0);
   const isAdmin = user && user.role === 'admin';
   const isDelivery = user && user.role === 'delivery';
 
   const userTabs = [
-    { id: 'flourStudio', label: 'Flour Studio', icon: Sparkles, badge: true },
+    { id: 'flourStudio', label: 'Flour Studio', icon: Sparkles },
     { id: 'ayurvedicAI', label: 'Ayurvedic AI', icon: Bot },
     { id: 'orders', label: 'My Orders', icon: Clock },
-    { id: 'auth', label: user ? 'Account' : 'Sign In', icon: User, action: () => onOpenAuth() }
+    { 
+      id: 'cart', 
+      label: 'Cart', 
+      icon: ShoppingBag, 
+      count: totalBags,
+      action: () => onOpenCart() 
+    }
   ];
 
   const adminTabs = [
@@ -28,7 +35,10 @@ export function BottomNav({ currentTab, onSelectTab, user, onOpenAuth }) {
   const activeList = isAdmin ? adminTabs : isDelivery ? deliveryTabs : userTabs;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-t border-gray-200 dark:border-[#2E2A20] px-2 py-1.5 md:hidden transition-colors">
+    <nav 
+      aria-label="Mobile Navigation"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111111]/95 backdrop-blur-md border-t border-gray-200 dark:border-[#2E2A20] px-2 py-1.5 md:hidden transition-colors shadow-lg"
+    >
       <div className={`grid ${isAdmin || isDelivery ? 'grid-cols-1' : 'grid-cols-4'} max-w-md mx-auto`}>
         {activeList.map((tab) => {
           const Icon = tab.icon;
@@ -49,6 +59,11 @@ export function BottomNav({ currentTab, onSelectTab, user, onOpenAuth }) {
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.6]'}`} />
+                {typeof tab.count === 'number' && tab.count > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-[#C9A227] text-white text-[9px] font-bold px-1 min-w-[15px] h-[15px] flex items-center justify-center rounded-full leading-none shadow-sm">
+                    {tab.count}
+                  </span>
+                )}
                 {tab.badge && (
                   <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#C9A227] animate-pulse"></span>
                 )}

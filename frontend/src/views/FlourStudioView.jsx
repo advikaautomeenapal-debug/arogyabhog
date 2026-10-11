@@ -20,16 +20,21 @@ import {
   Trash2,
   Package,
   ChevronDown,
+  ChevronUp,
+  BookOpen,
+  HelpCircle,
   MapPin
 } from 'lucide-react';
 import { calculateProductNutrition, NUTRIENT_DEFINITIONS, formatNutrientValue } from '../utils/nutritionCalculator';
 import { resolveGrainDoc, canonicalGrainName, normalizeIngredientsMap } from '../utils/grainResolver';
+import { getProductSlug, SEO_ARTICLES, SEO_FAQS } from '../utils/productSeoData';
 
 export function FlourStudioView({ 
   products, 
   grains, 
   onAddToCart, 
   onOpenCart, 
+  onOpenProductDetail,
   cart,
   initialRatios,
   siteContent
@@ -42,6 +47,11 @@ export function FlourStudioView({
   const [packSizes, setPackSizes] = useState({});
   const [addingProductId, setAddingProductId] = useState(null);
   const [productValidationErrors, setProductValidationErrors] = useState({});
+
+  // Educational Knowledge Hub & FAQ Accordion State
+  const [expandedArticleId, setExpandedArticleId] = useState(null);
+  const [expandedFaqId, setExpandedFaqId] = useState(null);
+  const [selectedKnowledgeTab, setSelectedKnowledgeTab] = useState('articles');
 
   // REQUIREMENT 3: CUSTOM BLEND FIXED AT EXACTLY 10 KG
   const TARGET_CUSTOM_WEIGHT = 10; // Exactly 10 kg
@@ -413,18 +423,22 @@ export function FlourStudioView({
   return (
     <div className="pb-24">
       
-      {/* Top Banner Notice (Dynamic from Admin Website Management) */}
-      <div className="bg-amber-50/70 dark:bg-[#1B1B1C] border-b border-gray-200 dark:border-[#2E2A20] px-4 py-2 flex items-center justify-between text-xs transition-colors">
-        <div className="flex items-center space-x-2 text-[#C9A227]">
-          <Sparkles className="w-3.5 h-3.5 flex-shrink-0 animate-pulse" />
-          <span className="font-sans font-medium text-[11px] md:text-xs text-gray-800 dark:text-[#E5E2E1]">
-            {siteContent?.topBannerText || '100% Traditional Slow Stone Cold-Ground • Below 35°C'}
-          </span>
+      {/* Top Banner Notice (Only rendered if admin sets an active custom announcement, NOT the removed tagline) */}
+      {siteContent?.topBannerActive && siteContent?.topBannerText && siteContent.topBannerText !== '100% Traditional Slow Stone Cold-Ground • Below 35°C' && (
+        <div className="bg-amber-50/70 dark:bg-[#1B1B1C] border-b border-gray-200 dark:border-[#2E2A20] px-4 py-2 flex items-center justify-between text-xs transition-colors">
+          <div className="flex items-center space-x-2 text-[#C9A227]">
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0 animate-pulse" />
+            <span className="font-sans font-medium text-[11px] md:text-xs text-gray-800 dark:text-[#E5E2E1]">
+              {siteContent.topBannerText}
+            </span>
+          </div>
+          {siteContent?.topBannerBadge && (
+            <div className="border border-[#C9A227]/30 rounded-lg px-2 py-0.5 text-[10px] uppercase font-bold text-[#C9A227] tracking-caps bg-white dark:bg-[#121212]">
+              {siteContent.topBannerBadge}
+            </div>
+          )}
         </div>
-        <div className="border border-[#C9A227]/30 rounded-lg px-2 py-0.5 text-[10px] uppercase font-bold text-[#C9A227] tracking-caps bg-white dark:bg-[#121212]">
-          {siteContent?.topBannerBadge || 'Zero Preservatives'}
-        </div>
-      </div>
+      )}
 
       {/* Dynamic Announcement Notice if active */}
       {siteContent?.announcementActive && siteContent?.announcementNotice && (
@@ -516,7 +530,11 @@ export function FlourStudioView({
                         <span className={`inline-flex items-center text-[9px] sm:text-[10px] font-bold tracking-caps uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border ${badgeColorClass}`}>
                           {product.badge}
                         </span>
-                        <h3 className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-tight">
+                        <h3 
+                          onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
+                          className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-tight cursor-pointer"
+                          title={`View ${product.name} recipe and nutrition details`}
+                        >
                           {product.name}
                         </h3>
                         {product.tagline && (
@@ -611,19 +629,41 @@ export function FlourStudioView({
                           </div>
                         </div>
 
-                        {/* Mobile-only secondary customize button */}
-                        <button
-                          type="button"
-                          onClick={() => handleCustomizePrebuilt(product)}
-                          className="sm:hidden py-1 px-2.5 rounded-lg border border-[#C9A227]/50 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 transition-all"
-                          title="Customize in blender"
-                        >
-                          <Sliders className="w-3 h-3" />
-                          <span>Customize</span>
-                        </button>
+                        {/* Mobile-only secondary buttons: Details & Customize */}
+                        <div className="flex items-center space-x-1.5 sm:hidden">
+                          <button
+                            type="button"
+                            onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
+                            className="py-1 px-2 rounded-lg border border-gray-300 dark:border-[#3E3A2F] text-gray-700 dark:text-[#D0C5AF] hover:text-[#C9A227] font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 transition-all"
+                            title="View Recipe & Nutrition"
+                          >
+                            <Info className="w-3 h-3" />
+                            <span>Details</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCustomizePrebuilt(product)}
+                            className="py-1 px-2 rounded-lg border border-[#C9A227]/50 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 transition-all"
+                            title="Customize in blender"
+                          >
+                            <Sliders className="w-3 h-3" />
+                            <span>Customize</span>
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* Desktop Details Button */}
+                        <button
+                          type="button"
+                          onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
+                          className="hidden sm:inline-flex py-2.5 px-3 rounded-xl border border-gray-300 dark:border-[#3E3A2F] text-gray-700 dark:text-[#D0C5AF] hover:border-[#C9A227] hover:text-[#C9A227] font-bold text-xs uppercase tracking-caps items-center justify-center space-x-1.5 transition-all shadow-sm"
+                          title={`View ${product.name} recipe and nutrition details`}
+                        >
+                          <Info className="w-3.5 h-3.5" />
+                          <span>Details</span>
+                        </button>
+
                         {/* Desktop Customize Button */}
                         <button
                           type="button"
@@ -661,7 +701,11 @@ export function FlourStudioView({
                     <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold tracking-caps uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
                       CUSTOMER BESPOKE BLEND • STRICTLY 10 KG
                     </span>
-                    <h3 className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7]">
+                    <h3 
+                      onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
+                      className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] cursor-pointer hover:text-[#C9A227] transition-colors"
+                      title="View My Choice Atta Details"
+                    >
                       My Choice Atta
                     </h3>
                     <p className="font-sans text-[11px] sm:text-xs text-[#C9A227] italic">
@@ -687,14 +731,25 @@ export function FlourStudioView({
                   <span className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-400 font-medium">
                     ✓ Custom fineness • Live pricing • Full ingredient control
                   </span>
-                  <button
-                    onClick={() => setActiveTab('customBlender')}
-                    className="w-full sm:w-auto py-2.5 px-4 sm:px-5 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer"
-                  >
-                    <Sliders className="w-4 h-4" />
-                    <span>Open Custom Blender (10 kg)</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
+                      className="py-2.5 px-3 rounded-xl border border-gray-300 dark:border-[#3E3A2F] text-gray-700 dark:text-[#D0C5AF] hover:text-[#C9A227] hover:border-[#C9A227] font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-1.5 transition-all shadow-sm"
+                      title="View My Choice Atta Details & Concept"
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                      <span>Details</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('customBlender')}
+                      className="flex-1 sm:flex-initial py-2.5 px-4 sm:px-5 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer"
+                    >
+                      <Sliders className="w-4 h-4" />
+                      <span>Open Custom Blender (10 kg)</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1251,136 +1306,215 @@ export function FlourStudioView({
         )}
 
         {/* ========================================================
-            SEO SEARCH ENGINE OPTIMIZATION & HEALTH FLOURS GUIDE
-            Targeted Keywords: Traditional Atta, Ayurvedic Atta, Arogya Bhog, 
-            Aarog Bhog, High Protein Atta, Thyroid Atta, Thyrocare Atta, 
-            Sugar Care Atta, Sugar Atta, Diabetic Atta, Atta for Diabetic Patient, 
-            Atta for Thyroid Patient, Atta for Good Health, Multigrain Atta, 
-            Thyroid Multigrain Atta, High Protein Multigrain Atta, Vitality Atta
+            EDUCATIONAL KNOWLEDGE HUB & FAQS (REQUIREMENTS 3, 5, 6, 7)
+            9 Factual Articles, 8 FAQs, Hindi/Hinglish Search Keywords,
+            and Mandatory Health-Claim Safeguards
             ======================================================== */}
-        <section aria-label="ArogyaBhog Traditional & Ayurvedic Atta Guide" className="mt-12 pt-8 border-t border-gray-200 dark:border-[#2E2A20] space-y-8">
+        <section aria-label="Arogya Bhog Nutrition and Atta Knowledge Hub" className="mt-12 pt-8 border-t border-gray-200 dark:border-[#2E2A20] space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-caps text-[#C9A227] px-3 py-1 rounded-full bg-amber-50 dark:bg-[#1A1A1A] border border-[#C9A227]/40 inline-block">
-              Pure Artisanal Stone Chakki Milling
+              Knowledge Hub & Dietary Transparency
             </span>
             <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-gray-900 dark:text-[#FDFBF7]">
-              Traditional & Ayurvedic Atta for Good Health
+              Arogya Bhog Flour & Nutrition Guides
             </h2>
             <p className="font-sans text-xs sm:text-sm text-gray-600 dark:text-[#99907C] leading-relaxed">
-              At <strong>Arogya Bhog (Aarog Bhog)</strong>, we revive traditional Ayurvedic wellness with slow natural stone-milled flours. Cold-milled below 35°C to preserve live wheat germ, active digestive enzymes, and essential dietary bran.
+              At <strong>Arogya Bhog</strong>, we believe in honest nourishment and total ingredient transparency. Explore verified grain profiles, nutritional science, and practical dietary guidance for everyday family well-being.
             </p>
           </div>
 
-          {/* Grid of Targeted Health Flour Formulations */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* 1. Sugar Care / Diabetic Atta */}
-            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700">
-                  Low GI Formulation
-                </span>
-                <span className="text-[10px] font-bold text-[#C9A227]">Doctor Certified</span>
-              </div>
-              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
-                Sugar Care Atta • Diabetic Atta
-              </h3>
-              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
-                Specially crafted <strong>atta for diabetic patients</strong> and blood sugar management. Combines low-glycemic ancient grains like jau (barley), ragi, roasted chana, and fenugreek seeds to slow carbohydrate absorption and avoid post-meal glucose spikes.
-              </p>
-              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Diabetic Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Sugar Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Atta for Diabetic Patient</span>
-              </div>
-            </article>
+          {/* Knowledge Switcher Tabs: Guides vs FAQs */}
+          <div className="flex justify-center">
+            <div className="inline-flex p-1 bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2E2A20] rounded-xl text-xs font-bold uppercase tracking-wider">
+              <button
+                type="button"
+                onClick={() => setSelectedKnowledgeTab('articles')}
+                className={`py-2 px-4 rounded-lg flex items-center space-x-1.5 transition-all ${
+                  selectedKnowledgeTab === 'articles'
+                    ? 'bg-[#C9A227] text-white shadow-sm'
+                    : 'text-gray-600 dark:text-[#99907C] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Educational Guides (9)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedKnowledgeTab('faqs')}
+                className={`py-2 px-4 rounded-lg flex items-center space-x-1.5 transition-all ${
+                  selectedKnowledgeTab === 'faqs'
+                    ? 'bg-[#C9A227] text-white shadow-sm'
+                    : 'text-gray-600 dark:text-[#99907C] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
+                }`}
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Frequently Asked Questions (8)</span>
+              </button>
+            </div>
+          </div>
 
-            {/* 2. Thyrocare / Thyroid Atta */}
-            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-300 dark:border-purple-700">
-                  Endocrine Balance
-                </span>
-                <span className="text-[10px] font-bold text-[#C9A227]">Mineral Enriched</span>
-              </div>
-              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
-                Thyrocare Atta • Thyroid Multigrain Atta
-              </h3>
-              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
-                The recommended <strong>atta for thyroid patients</strong>. Naturally enriched with selenium, zinc, tyrosine, pumpkin seeds, and therapeutic grains to nourish endocrine pathways, sustain metabolic balance, and help manage weight.
-              </p>
-              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Thyroid Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Thyrocare Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Atta for Thyroid Patient</span>
-              </div>
-            </article>
+          {/* TAB 1: 9 FACTUAL EDUCATIONAL GUIDES */}
+          {selectedKnowledgeTab === 'articles' && (
+            <div className="space-y-3 animate-fadeIn">
+              {SEO_ARTICLES.map((article) => {
+                const isExpanded = expandedArticleId === article.id;
+                return (
+                  <article
+                    key={article.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227]/60 transition-all shadow-sm space-y-3"
+                  >
+                    <div 
+                      onClick={() => setExpandedArticleId(isExpanded ? null : article.id)}
+                      className="cursor-pointer flex items-start justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A227] bg-amber-50 dark:bg-[#1F1D14] border border-[#C9A227]/30 px-2 py-0.5 rounded-md">
+                            {article.category}
+                          </span>
+                          <span className="text-[10px] text-gray-400 dark:text-[#8B826F]">
+                            {article.readTime}
+                          </span>
+                        </div>
+                        <h3 className="font-editorial text-base sm:text-lg font-bold text-gray-900 dark:text-[#FDFBF7] hover:text-[#C9A227] transition-colors">
+                          {article.title}
+                        </h3>
+                        <p className="text-xs text-[#C9A227] italic">
+                          {article.hindiTitle}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-[#99907C] leading-relaxed line-clamp-2">
+                          {article.summary}
+                        </p>
+                      </div>
 
-            {/* 3. High Protein Multigrain Atta */}
-            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-md border border-sky-300 dark:border-sky-700">
-                  100% Plant Protein
-                </span>
-                <span className="text-[10px] font-bold text-[#C9A227]">High Fibre</span>
-              </div>
-              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
-                High Protein Multigrain Atta
-              </h3>
-              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
-                Nutrient-rich <strong>high protein atta for good health</strong>, daily stamina, and muscle repair. Combining roasted Bengal gram, organic soya, millets, and MP Sharbati wheat, offering a complete plant protein profile for the whole family.
-              </p>
-              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">High Protein Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Multigrain Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Atta for Good Health</span>
-              </div>
-            </article>
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? 'Collapse article' : 'Expand article'}
+                        className="p-1 rounded-lg text-gray-400 hover:text-[#C9A227] flex-shrink-0"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
 
-            {/* 4. Vitality Atta & Ayurvedic Atta */}
-            <article className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] shadow-sm space-y-2 hover:border-[#C9A227]/60 transition-all">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-300 dark:border-rose-700">
-                  Daily Immune Vitality
-                </span>
-                <span className="text-[10px] font-bold text-[#C9A227]">100% Pure Grains</span>
-              </div>
-              <h3 className="font-editorial text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
-                Vitality Atta • Traditional Ayurvedic Atta
-              </h3>
-              <p className="font-sans text-xs text-gray-600 dark:text-[#99907C] leading-relaxed">
-                Formulated with 7 ancient whole grains and seeds for long-term gut immunity and digestive vitality. Stone milled fresh strictly upon order placement with zero chemical bleaching and zero synthetic additives.
-              </p>
-              <div className="pt-1 flex flex-wrap gap-1 text-[10px] text-gray-500 dark:text-[#8B826F]">
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Vitality Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Ayurvedic Atta</span>
-                <span className="bg-gray-100 dark:bg-[#202020] px-2 py-0.5 rounded">Traditional Atta</span>
-              </div>
-            </article>
+                    {/* Expanded Article Body */}
+                    {isExpanded && (
+                      <div className="pt-3 border-t border-gray-100 dark:border-[#2E2A20] space-y-3 animate-fadeIn text-xs sm:text-sm text-gray-700 dark:text-[#CFC6B3] leading-relaxed">
+                        {article.content.split('\n\n').map((para, pIdx) => (
+                          <p key={pIdx}>{para}</p>
+                        ))}
+
+                        {/* Mandatory Health Disclaimer if present */}
+                        {article.disclaimer && (
+                          <div className="p-3.5 rounded-xl bg-amber-50/80 dark:bg-[#1E1B12] border border-amber-300 dark:border-[#C9A227]/40 text-amber-900 dark:text-[#E5C158] text-xs flex items-start space-x-2.5">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-[#C9A227] mt-0.5" />
+                            <p className="leading-relaxed font-sans">{article.disclaimer}</p>
+                          </div>
+                        )}
+
+                        {article.relatedProductSlug && onOpenProductDetail && (
+                          <div className="pt-2 flex items-center justify-between">
+                            <span className="text-[11px] text-gray-500 dark:text-[#8B826F]">
+                              Relevant Product Formulation
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => onOpenProductDetail(article.relatedProductSlug)}
+                              className="text-xs font-bold text-[#C9A227] hover:underline flex items-center space-x-1"
+                            >
+                              <span>View Recipe & Nutrition</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {/* TAB 2: 8 FREQUENTLY ASKED QUESTIONS */}
+          {selectedKnowledgeTab === 'faqs' && (
+            <div className="space-y-3 animate-fadeIn">
+              {SEO_FAQS.map((faq) => {
+                const isExpanded = expandedFaqId === faq.id;
+                return (
+                  <div
+                    key={faq.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227]/60 transition-all shadow-sm space-y-2"
+                  >
+                    <div
+                      onClick={() => setExpandedFaqId(isExpanded ? null : faq.id)}
+                      className="cursor-pointer flex items-start justify-between gap-3"
+                    >
+                      <div className="space-y-0.5">
+                        <h3 className="font-editorial text-sm sm:text-base font-bold text-gray-900 dark:text-[#FDFBF7]">
+                          {faq.question}
+                        </h3>
+                        <p className="text-xs text-[#C9A227] italic">
+                          {faq.hindiQuestion}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? 'Collapse answer' : 'Expand answer'}
+                        className="p-1 rounded-lg text-gray-400 hover:text-[#C9A227] flex-shrink-0"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="pt-2.5 border-t border-gray-100 dark:border-[#2E2A20] animate-fadeIn text-xs sm:text-sm text-gray-700 dark:text-[#CFC6B3] leading-relaxed">
+                        <p>{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Mandatory General Medical Disclaimer Banner */}
+          <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#151515] border border-gray-200 dark:border-[#2E2A20] text-center space-y-1.5 text-xs text-gray-600 dark:text-[#99907C]">
+            <p className="font-bold text-gray-800 dark:text-[#D0C5AF]">
+              Responsible Health Information Safeguard
+            </p>
+            <p className="max-w-3xl mx-auto leading-relaxed">
+              All Arogya Bhog products are wholesome, natural whole-food dietary ingredients. They are not pharmaceutical medicines, cures, or treatments for diabetes, thyroid conditions, arthritis, or gout. Always consult a qualified physician or registered dietitian for specialized health and medical advice.
+            </p>
           </div>
 
           {/* Popular Search Keywords Cloud */}
           <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-[#1A1A1A] border border-amber-200 dark:border-[#2E2A20] text-center space-y-2.5">
             <h4 className="text-xs uppercase font-bold tracking-wider text-gray-700 dark:text-[#D0C5AF]">
-              Popular Searches & ArogyaBhog Health Flours
+              Popular Searches & Arogya Bhog Health Flours
             </h4>
             <div className="flex flex-wrap justify-center gap-1.5 text-[11px] text-gray-600 dark:text-[#99907C]">
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Traditional Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Ayurvedic Atta</span>
               <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Arogya Bhog</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Aarog Bhog</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">High Protein Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyroid Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyrocare Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Sugar Care Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Sugar Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Diabetic Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Atta for Diabetic Patient</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Atta for Thyroid Patient</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Atta for Good Health</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Arogya Bhog Atta</span>
               <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Multigrain Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyroid Multigrain Atta</span>
-              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">High Protein Multigrain Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">High Protein Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Sugar Care Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Thyro Care Atta</span>
               <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Vitality Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">My Choice Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Desi Atta</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">मल्टीग्रेन आटा</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">हाई प्रोटीन आटा</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">शुगर केयर आटा</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">थायरो केयर आटा</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">अपने पसंद का आटा</span>
+              <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Buy Atta Online</span>
               <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Fresh Stone Chakki Atta</span>
             </div>
           </div>

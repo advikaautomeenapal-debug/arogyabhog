@@ -44,13 +44,16 @@ import {
   Database,
   BookOpen,
   MapPin,
-  Settings
+  Settings,
+  Tag
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import { buildUpiUri, MERCHANT_UPI_ID } from '../utils/upiHelper';
 import { NUTRIENT_DEFINITIONS, calculateProductNutrition, formatNutrientValue } from '../utils/nutritionCalculator';
 import { exportOrdersToExcel, EXCEL_ORDER_COLUMNS } from '../utils/excelExport';
+import { AdminPasswordResetSection } from '../components/AdminPasswordResetSection';
+import { AdminCouponsSection } from '../components/AdminCouponsSection';
 
 export function AdminView({ 
   products = [], 
@@ -1602,6 +1605,30 @@ export function AdminView({
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-mono">
             {deliveryAreas.zones?.length || 1}
           </span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('recovery')}
+          className={`flex-shrink-0 py-2.5 px-3 md:px-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all ${
+            activeAdminTab === 'recovery'
+              ? 'bg-white dark:bg-[#25221b] text-gray-900 dark:text-[#fdfbf7] border border-gray-300 dark:border-[#C9A227]/50 shadow-md'
+              : 'text-gray-500 dark:text-[#8b826f] hover:text-gray-900 dark:hover:text-[#fdfbf7]'
+          }`}
+        >
+          <Key className="w-3.5 h-3.5 text-[#C9A227]" />
+          <span>PASSWORD RESET REQUESTS</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminTab('coupons')}
+          className={`flex-shrink-0 py-2.5 px-3 md:px-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all ${
+            activeAdminTab === 'coupons'
+              ? 'bg-white dark:bg-[#25221b] text-gray-900 dark:text-[#fdfbf7] border border-gray-300 dark:border-[#C9A227]/50 shadow-md'
+              : 'text-gray-500 dark:text-[#8b826f] hover:text-gray-900 dark:hover:text-[#fdfbf7]'
+          }`}
+        >
+          <Tag className="w-3.5 h-3.5 text-[#C9A227]" />
+          <span>COUPONS & DISCOUNTS</span>
         </button>
       </div>
 
@@ -4629,6 +4656,20 @@ export function AdminView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================
+          MODULE: PASSWORD RESET REQUESTS (WHATSAPP RECOVERY)
+          ======================================================== */}
+      {activeAdminTab === 'recovery' && (
+        <AdminPasswordResetSection adminUser={safeUser} />
+      )}
+
+      {/* ========================================================
+          MODULE: COUPONS & DISCOUNTS
+          ======================================================== */}
+      {activeAdminTab === 'coupons' && (
+        <AdminCouponsSection adminUser={safeUser} />
       )}
 
       {/* CREATE ZONE MODAL */}

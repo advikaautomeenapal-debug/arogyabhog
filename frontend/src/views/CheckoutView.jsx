@@ -28,7 +28,10 @@ import {
   Star,
   CheckCircle,
   CreditCard,
-  Info
+  Info,
+  Tag,
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 import { api } from '../services/api';
 import { buildUpiUri, MERCHANT_UPI_ID, MERCHANT_NAME } from '../utils/upiHelper';
@@ -364,6 +367,12 @@ export function CheckoutView({
   const [orderConfirmed, setOrderConfirmed] = useState(null);
   const [unserviceableOrder, setUnserviceableOrder] = useState(null);
 
+  // Coupon states (Discounts applicable ONLY by coupon code)
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+
   // Cart item / batch details
   const firstItem = cart && cart[0];
   const isCustomBlend = Boolean(firstItem?.isCustom);
@@ -372,8 +381,53 @@ export function CheckoutView({
   const itemsTotal = cart && cart.length > 0
     ? cart.reduce((acc, i) => acc + (Number(i.totalItemPrice) || ((Number(i.pricePerKg) || 0) * (Number(i.batchSizeKg) || 1) * (Number(i.quantity) || 1))), 0)
     : 0;
-  const discountAmount = itemsTotal > 0 ? 100 : 0; // Introductory Customer Discount
+  const discountAmount = appliedCoupon ? (Number(appliedCoupon.discountAmount) || 0) : 0;
   const totalPayable = Math.max(0, itemsTotal - discountAmount);
+
+  // Admin WhatsApp for discount requests
+  const ADMIN_WHATSAPP_NUMBER = import.meta.env.VITE_ADMIN_WHATSAPP_NUMBER || '919621496772';
+  const customerPhoneForWa = String(deliveryInfo.contactNumber || user?.phone || '').trim();
+  const whatsappDiscountText = `Hi Arogya Bhog Admin,\n\nI would like to request a discount coupon code for my Arogya Bhog order.\n\n${customerPhoneForWa ? `Registered mobile number: ${customerPhoneForWa}\n` : ''}Items total: ₹${itemsTotal}\n\nPlease share an applicable coupon code if available.\n\nThank you!`;
+  const whatsappDiscountUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappDiscountText)}`;
+
+  const handleApplyCoupon = async (e) => {
+    if (e) e.preventDefault();
+    const cleanCode = couponCodeInput.trim().toUpperCase();
+    if (!cleanCode) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setCouponError('');
+    setIsValidatingCoupon(true);
+
+    try {
+      const contactPhone = String(deliveryInfo.contactNumber || user?.phone || '').trim();
+      const res = await api.validateCoupon({
+        code: cleanCode,
+        phone: contactPhone,
+        orderTotal: itemsTotal
+      });
+
+      if (res && res.success && res.coupon) {
+        setAppliedCoupon(res.coupon);
+        setCouponError('');
+      } else {
+        setCouponError(res?.message || 'Invalid or inapplicable coupon code.');
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      setCouponError('Error checking coupon: ' + err.message);
+      setAppliedCoupon(null);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCodeInput('');
+    setCouponError('');
+  };
 
   // Operational cost rates (OP-001, OP-002, OP-003)
   const millingRate = operationalCosts?.find(c => c.costId === 'OP-001')?.amount ?? 4.0;
@@ -440,8 +494,8 @@ export function CheckoutView({
     setDeliveryValidationError('');
     try {
       const orderPayload = {
-        customerId: user.id || user._id,
-        customerEmail: user.email,
+        customerId: user?.id || user?._id,
+        customerEmail: user?.email || '',
         customerName: String(deliveryInfo.name || '').trim(),
         customerPhone: String(deliveryInfo.contactNumber || '').trim(),
         customerContact: String(deliveryInfo.contactNumber || '').trim(),
@@ -457,6 +511,7 @@ export function CheckoutView({
         items: cart,
         totalAmount: totalPayable,
         discountAmount: discountAmount,
+        couponCode: appliedCoupon?.code || '',
         paymentMethod: 'COD',
         paymentStatus: 'Pending',
         transactionRef: `COD-${Date.now().toString().slice(-7)}`,
@@ -1084,7 +1139,98 @@ export function CheckoutView({
       </div>
 
       {/* ========================================================
-          CARD 3: BILL DETAILS (- ₹100 Introductory Discount)
+          CARD 3: DISCOUNT COUPON & WHATSAPP ASSISTANCE
+          ======================================================== */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-[#201c13] border border-[#C9A227]/40 flex items-center justify-center text-[#C9A227]">
+              <Tag className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-[11px] uppercase font-bold tracking-caps text-[#C9A227] block">
+                DISCOUNT COUPON
+              </span>
+              <span className="text-[10px] text-gray-500 dark:text-[#8b826f]">
+                Apply a single-use coupon code for an instant discount
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {!appliedCoupon ? (
+          <form onSubmit={handleApplyCoupon} className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCodeInput}
+                onChange={(e) => {
+                  setCouponCodeInput(e.target.value.toUpperCase());
+                  setCouponError('');
+                }}
+                placeholder="ENTER COUPON CODE"
+                className="flex-1 px-3 py-2.5 rounded-xl border border-gray-300 dark:border-[#2e2a20] bg-gray-50 dark:bg-[#121212] text-xs font-mono font-bold uppercase tracking-wider text-gray-900 dark:text-[#fdfbf7] placeholder-gray-400 dark:placeholder-gray-600 outline-none focus:border-[#C9A227] transition-all"
+              />
+              <button
+                type="submit"
+                disabled={isValidatingCoupon || !couponCodeInput.trim()}
+                className="px-5 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center min-w-[80px]"
+              >
+                {isValidatingCoupon ? 'Checking...' : 'APPLY'}
+              </button>
+            </div>
+
+            {couponError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300 flex items-center space-x-1.5 animate-fadeIn">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{couponError}</span>
+              </div>
+            )}
+          </form>
+        ) : (
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between animate-fadeIn">
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 font-mono tracking-wider">
+                  {appliedCoupon.code}
+                </span>
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 block">
+                  ₹{appliedCoupon.discountAmount} OFF applied on this order
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline uppercase tracking-wider px-2 py-1"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {/* WhatsApp Discount Request Link */}
+        <div className="pt-2 border-t border-gray-100 dark:border-[#2e2a20]/60">
+          <a
+            href={whatsappDiscountUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full p-2.5 rounded-xl bg-emerald-50/60 dark:bg-[#142318] hover:bg-emerald-100/60 dark:hover:bg-[#1a2e20] border border-emerald-300/60 dark:border-emerald-800/60 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 font-medium transition-all group"
+          >
+            <div className="flex items-center space-x-2">
+              <MessageCircle className="w-4 h-4 text-[#25D366] flex-shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] md:text-xs">
+                Need a discount coupon? <strong>Chat with Admin on WhatsApp</strong>
+              </span>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 opacity-70 group-hover:opacity-100" />
+          </a>
+        </div>
+      </div>
+
+      {/* ========================================================
+          CARD 4: BILL DETAILS
           ======================================================== */}
       <div className="p-4 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] space-y-2.5 shadow-sm">
         <span className="text-[11px] uppercase font-bold tracking-caps text-[#C9A227] block">
@@ -1097,10 +1243,15 @@ export function CheckoutView({
             <span>₹{itemsTotal}</span>
           </div>
 
-          <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
-            <span>Introductory Customer Discount</span>
-            <span>- ₹{discountAmount}</span>
-          </div>
+          {appliedCoupon && (
+            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium animate-fadeIn">
+              <span className="flex items-center space-x-1.5">
+                <Tag className="w-3.5 h-3.5 text-[#C9A227]" />
+                <span>Coupon Discount ({appliedCoupon.code})</span>
+              </span>
+              <span>- ₹{discountAmount}</span>
+            </div>
+          )}
 
           {/* Itemized Operational Cost Breakdown */}
           <div className="pt-2 border-t border-gray-100 dark:border-[#2e2a20]/60 space-y-1 text-[11px] text-gray-500 dark:text-[#8b826f]">
@@ -1128,10 +1279,12 @@ export function CheckoutView({
           </div>
         </div>
 
-        {/* Savings Inset Tag */}
-        <div className="p-2 rounded-xl bg-amber-50 dark:bg-[#201c13] border border-amber-300 dark:border-[#C9A227]/40 text-center text-xs text-[#C9A227] font-medium flex items-center justify-center space-x-1.5">
-          <span>🎉 You saved ₹100 on your fresh stone-ground order!</span>
-        </div>
+        {/* Savings Inset Tag (only if coupon applied) */}
+        {appliedCoupon && (
+          <div className="p-2 rounded-xl bg-amber-50 dark:bg-[#201c13] border border-amber-300 dark:border-[#C9A227]/40 text-center text-xs text-[#C9A227] font-medium flex items-center justify-center space-x-1.5 animate-fadeIn">
+            <span>🎉 You saved ₹{discountAmount} on your order with coupon {appliedCoupon.code}!</span>
+          </div>
+        )}
       </div>
 
       {/* ========================================================

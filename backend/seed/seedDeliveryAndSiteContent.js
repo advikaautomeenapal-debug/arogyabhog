@@ -90,9 +90,9 @@ async function seedDeliveryAndSiteContent() {
   if (!siteContent) {
     siteContent = await SiteContent.create({
       key: 'main_config',
-      topBannerText: '100% Traditional Slow Stone Cold-Ground • Below 35°C',
-      topBannerBadge: 'Zero Preservatives',
-      topBannerActive: true,
+      topBannerText: '',
+      topBannerBadge: '',
+      topBannerActive: false,
       brandTagline: 'रोटी में स्वाद, सेहत के साथ।',
       announcementNotice: 'We currently serve selected PIN codes in Kanpur (208016, 209202).',
       announcementActive: true,

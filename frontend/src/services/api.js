@@ -14,12 +14,17 @@ const getAuthHeaders = (isFormData = false) => {
 
 export const api = {
   // AUTH
-  async login(email, password) {
+  async login(identifier, password) {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({
+          identifier,
+          phone: identifier,
+          email: identifier,
+          password
+        })
       });
       const data = await res.json();
       if (data.success && data.token) {
@@ -44,6 +49,147 @@ export const api = {
         localStorage.setItem('arogyabhog_token', data.token);
       }
       return data;
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async sendPasswordResetOtp(phone) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async verifyPasswordResetOtp({ phone, otp }) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async resetPasswordWithOtp({ phone, otp, newPassword }) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp, newPassword })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // ==========================================
+  // WHATSAPP-BASED RECOVERY & PASSWORD RESET
+  // ==========================================
+  async initiatePasswordRecovery(phone) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/initiate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async validateRecoveryToken(token) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/validate-token?token=${encodeURIComponent(token)}`);
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async resetPasswordWithRecoveryToken({ token, newPassword, confirmPassword }) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword, confirmPassword })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // Admin Recovery Request Management APIs
+  async getRecoveryRequests(params = {}) {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const res = await fetch(`${API_BASE}/auth/recovery/requests?${query}`, {
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message, data: [] };
+    }
+  },
+
+  async createRecoveryRequest(requestData) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/requests`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(requestData)
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async verifyRecoveryRequest(requestId, payload = {}) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/requests/${requestId}/verify`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async generateRecoveryToken(requestId) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/requests/${requestId}/generate-token`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async rejectRecoveryRequest(requestId, payload = {}) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/recovery/requests/${requestId}/reject`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
     } catch (err) {
       return { success: false, message: err.message };
     }
@@ -742,6 +888,71 @@ export const api = {
   async deleteChakki(id) {
     try {
       const res = await fetch(`${API_BASE}/delivery-areas/chakkis/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // ==========================================
+  // COUPONS & DISCOUNTS API
+  // ==========================================
+  async validateCoupon({ code, phone, orderTotal }) {
+    try {
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, phone, orderTotal })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async getCoupons(params = {}) {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const res = await fetch(`${API_BASE}/coupons?${query}`, {
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message, data: [] };
+    }
+  },
+
+  async createCoupon(couponData) {
+    try {
+      const res = await fetch(`${API_BASE}/coupons`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(couponData)
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async toggleCoupon(id) {
+    try {
+      const res = await fetch(`${API_BASE}/coupons/${id}/toggle`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async deleteCoupon(id) {
+    try {
+      const res = await fetch(`${API_BASE}/coupons/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });

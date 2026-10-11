@@ -222,7 +222,7 @@ export function HomeView({ onExploreStudio, onSelectDoctorBlend }) {
               <span className="text-sm font-bold text-[#f2ca50] font-mono">01</span>
               <h4 className="font-bold text-[#fdfbf7]">No High-Heat Burn</h4>
               <p className="text-[11px] text-[#99907c] leading-relaxed">
-                Industrial roller mills heat flour to 90°C, destroying vitamins. Our slow stone keeps grain cool below 35°C.
+                Industrial roller mills heat flour excessively, degrading delicate nutrients. Our slow stone chakki milling keeps grains cool and unburnt.
               </p>
             </div>
 

@@ -11,7 +11,8 @@ import { AdminView } from './views/AdminView';
 import { DeliveryView } from './views/DeliveryView';
 import { AdminLoginView } from './views/AdminLoginView';
 import { DeliveryLoginView } from './views/DeliveryLoginView';
-import { SubdomainRedirectView } from './views/SubdomainRedirectView';
+import { ProductDetailView } from './views/ProductDetailView';
+import { ResetPasswordView } from './views/ResetPasswordView';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { getPanelContext, getPanelUrl } from './utils/domainConfig';
@@ -36,9 +37,8 @@ export function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  // Hostname & Subdomain Routing Context
-  // 'customer' | 'admin' | 'delivery' | 'admin-path' | 'delivery-path'
-  const panelContext = getPanelContext();
+  // Hostname, Path & Route Context ('customer' | 'admin' | 'delivery')
+  const [panelContext, setPanelContext] = useState(() => getPanelContext());
 
   // Current logged in user profile (persisted in localStorage)
   const [user, setUser] = useState(() => {
@@ -57,6 +57,57 @@ export function App() {
   const [currentTab, setCurrentTab] = useState('flourStudio');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  // Helper to extract product slug from URL hash (e.g. #product/sugar-care-atta)
+  const parseProductSlugFromHash = () => {
+    if (typeof window === 'undefined') return null;
+    const hash = window.location.hash || '';
+    const match = hash.match(/^#product\/([^/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  const [selectedProductSlug, setSelectedProductSlug] = useState(() => parseProductSlugFromHash());
+  const [isResetRoute, setIsResetRoute] = useState(() => {
+    return typeof window !== 'undefined' && window.location.hash.startsWith('#reset-password');
+  });
+
+  // Listen to browser location and hash changes (direct URLs, back/forward button, reset password links)
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setPanelContext(getPanelContext());
+      const slug = parseProductSlugFromHash();
+      setSelectedProductSlug(slug);
+      if (slug) {
+        setCurrentTab('flourStudio');
+      }
+      setIsResetRoute(window.location.hash.startsWith('#reset-password'));
+    };
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
+
+  const handleOpenProductDetail = (slug) => {
+    setSelectedProductSlug(slug);
+    setCurrentTab('flourStudio');
+    if (slug) {
+      window.location.hash = `product/${slug}`;
+    } else {
+      if (window.location.hash.startsWith('#product/')) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+  };
+
+  const handleBackFromProductDetail = () => {
+    setSelectedProductSlug(null);
+    if (window.location.hash.startsWith('#product/')) {
+      window.history.pushState(null, '', window.location.pathname + window.location.search);
+    }
+  };
 
   // Data states
   const [products, setProducts] = useState([]);
@@ -99,9 +150,10 @@ export function App() {
       if (token) {
         try {
           const res = await api.getMe();
-          if (res.success && res.data) {
-            setUser(res.data);
-            localStorage.setItem('arogyabhog_user', JSON.stringify(res.data));
+          const userData = res?.user || res?.data;
+          if (res?.success && userData) {
+            setUser(userData);
+            localStorage.setItem('arogyabhog_user', JSON.stringify(userData));
           }
         } catch (err) {
           console.warn('Customer session restore failed:', err);
@@ -238,7 +290,7 @@ export function App() {
   };
 
   // =========================================================================
-  // SUBDOMAIN ROUTING CONDITION 1: DEDICATED ADMIN PANEL (admin.domain / ?panel=admin)
+  // ROUTING CONDITION 1: DEDICATED ADMIN PANEL (/admin | #admin | ?panel=admin | admin.*)
   // =========================================================================
   if (panelContext === 'admin') {
     if (isAdmin) {
@@ -258,7 +310,7 @@ export function App() {
   }
 
   // =========================================================================
-  // SUBDOMAIN ROUTING CONDITION 2: DEDICATED DELIVERY FLEET (delivery.domain / ?panel=delivery)
+  // ROUTING CONDITION 2: DEDICATED DELIVERY FLEET (/dp | /delivery-partner | /delivery | #dp | ?panel=dp | delivery.*)
   // =========================================================================
   if (panelContext === 'delivery') {
     if (isDelivery || isAdmin) {
@@ -273,27 +325,31 @@ export function App() {
   }
 
   // =========================================================================
-  // SUBDOMAIN ROUTING CONDITION 3: PATH REDIRECTS FROM STOREFRONT (/admin or /delivery)
+  // SUBDOMAIN ROUTING CONDITION: WHATSAPP PASSWORD RECOVERY (#reset-password)
   // =========================================================================
-  if (panelContext === 'admin-path') {
+  if (isResetRoute) {
     return (
-      <SubdomainRedirectView
-        targetPanel="admin"
-        onReturnToStore={() => {
-          window.location.href = '/';
-        }}
-      />
-    );
-  }
-
-  if (panelContext === 'delivery-path') {
-    return (
-      <SubdomainRedirectView
-        targetPanel="delivery"
-        onReturnToStore={() => {
-          window.location.href = '/';
-        }}
-      />
+      <div className="min-h-screen bg-[#FBFBFA] dark:bg-[#111111] text-gray-900 dark:text-[#F5F5F3]">
+        <ResetPasswordView
+          onOpenLogin={() => {
+            window.location.hash = '';
+            setIsResetRoute(false);
+            setIsAuthOpen(true);
+          }}
+          onBackToStore={() => {
+            window.location.hash = '';
+            setIsResetRoute(false);
+            setCurrentTab('flourStudio');
+          }}
+        />
+        <AuthModal
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+          user={user}
+          onUpdateUser={setUser}
+        />
+      </div>
     );
   }
 
@@ -316,7 +372,13 @@ export function App() {
         cart={cart}
         user={user}
         onOpenCart={() => setIsCartOpen(true)}
-        onNavigate={(tab) => setCurrentTab(tab)}
+        onNavigate={(tab) => {
+          setCurrentTab(tab);
+          setSelectedProductSlug(null);
+          if (window.location.hash.startsWith('#product/')) {
+            window.history.pushState(null, '', window.location.pathname + window.location.search);
+          }
+        }}
         currentTab={currentTab}
         onOpenAuth={() => setIsAuthOpen(true)}
         onLogout={handleLogout}
@@ -327,15 +389,30 @@ export function App() {
       {/* Main Content Area - Strictly Customer Tabs */}
       <main className="flex-1">
         {currentTab === 'flourStudio' && (
-          <FlourStudioView
-            products={products}
-            grains={grains}
-            siteContent={siteContent}
-            onAddToCart={handleAddToCart}
-            onOpenCart={() => setIsCartOpen(true)}
-            cart={cart}
-            initialRatios={blenderInitialRatios}
-          />
+          selectedProductSlug ? (
+            <ProductDetailView
+              slug={selectedProductSlug}
+              products={products}
+              onAddToCart={handleAddToCart}
+              onOpenCart={() => setIsCartOpen(true)}
+              onBackToStudio={handleBackFromProductDetail}
+              onSelectProduct={(slug) => handleOpenProductDetail(slug)}
+              onOpenCustomBlender={() => {
+                handleBackFromProductDetail();
+              }}
+            />
+          ) : (
+            <FlourStudioView
+              products={products}
+              grains={grains}
+              siteContent={siteContent}
+              onAddToCart={handleAddToCart}
+              onOpenCart={() => setIsCartOpen(true)}
+              onOpenProductDetail={handleOpenProductDetail}
+              cart={cart}
+              initialRatios={blenderInitialRatios}
+            />
+          )
         )}
 
         {currentTab === 'ayurvedicAI' && (
@@ -397,16 +474,26 @@ export function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+        user={user}
+        onUpdateUser={setUser}
       />
 
       {/* Floating Customer WhatsApp Support Button */}
       <WhatsAppButton />
 
-      {/* Bottom Sticky Navigation */}
+      {/* Bottom Sticky Navigation with Cart */}
       <BottomNav
         currentTab={currentTab}
-        onSelectTab={(tab) => setCurrentTab(tab)}
+        onSelectTab={(tab) => {
+          setCurrentTab(tab);
+          setSelectedProductSlug(null);
+          if (window.location.hash.startsWith('#product/')) {
+            window.history.pushState(null, '', window.location.pathname + window.location.search);
+          }
+        }}
         user={user}
+        cart={cart}
+        onOpenCart={() => setIsCartOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
       />
 

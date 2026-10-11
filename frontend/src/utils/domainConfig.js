@@ -15,14 +15,40 @@
 export function getPanelContext() {
   if (typeof window === 'undefined') return 'customer';
 
-  // 1. Check URL query override (?panel=admin | ?panel=delivery | ?panel=customer)
+  // 1. Check URL query override (?panel=admin | ?panel=delivery | ?panel=delivery-partner | ?panel=dp | ?panel=customer)
   const params = new URLSearchParams(window.location.search);
   const panelQuery = params.get('panel');
-  if (panelQuery === 'admin' || panelQuery === 'delivery' || panelQuery === 'customer') {
-    return panelQuery;
+  if (panelQuery === 'admin') return 'admin';
+  if (
+    panelQuery === 'delivery' || 
+    panelQuery === 'delivery-partner' || 
+    panelQuery === 'deliverypartner' ||
+    panelQuery === 'dp'
+  ) {
+    return 'delivery';
+  }
+  if (panelQuery === 'customer') {
+    return 'customer';
   }
 
-  // 2. Check hostname subdomains
+  // 2. Check URL hash (#admin | #/admin | #dp | #/dp | #delivery | #/delivery | #delivery-partner | #/delivery-partner)
+  const hash = (window.location.hash || '').toLowerCase();
+  if (hash === '#admin' || hash.startsWith('#admin/') || hash === '#/admin' || hash.startsWith('#/admin/')) {
+    return 'admin';
+  }
+  if (
+    hash === '#dp' || hash.startsWith('#dp/') ||
+    hash === '#/dp' || hash.startsWith('#/dp/') ||
+    hash === '#delivery' || hash.startsWith('#delivery/') ||
+    hash === '#/delivery' || hash.startsWith('#/delivery/') ||
+    hash === '#delivery-partner' || hash.startsWith('#delivery-partner/') ||
+    hash === '#/delivery-partner' || hash.startsWith('#/delivery-partner/') ||
+    hash === '#deliverypartner' || hash.startsWith('#deliverypartner/')
+  ) {
+    return 'delivery';
+  }
+
+  // 3. Check hostname subdomains (admin.* | delivery.*)
   const hostname = window.location.hostname.toLowerCase();
   if (hostname.startsWith('admin.') || hostname === 'admin.localhost') {
     return 'admin';
@@ -31,13 +57,18 @@ export function getPanelContext() {
     return 'delivery';
   }
 
-  // 3. Check path if on root domain (/admin, /delivery)
+  // 4. Check pathname (/admin | /dp | /delivery-partner | /delivery)
   const pathname = window.location.pathname.toLowerCase();
   if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-    return 'admin-path';
+    return 'admin';
   }
-  if (pathname === '/delivery' || pathname.startsWith('/delivery/')) {
-    return 'delivery-path';
+  if (
+    pathname === '/dp' || pathname.startsWith('/dp/') ||
+    pathname === '/delivery' || pathname.startsWith('/delivery/') ||
+    pathname === '/delivery-partner' || pathname.startsWith('/delivery-partner/') ||
+    pathname === '/deliverypartner' || pathname.startsWith('/deliverypartner/')
+  ) {
+    return 'delivery';
   }
 
   return 'customer';
@@ -67,25 +98,19 @@ export function getPanelUrl(panel) {
   if (typeof window === 'undefined') return '/';
 
   const hostname = window.location.hostname.toLowerCase();
-  const isLocalhost = hostname === 'localhost' || 
-                      hostname === '127.0.0.1' || 
-                      hostname === '0.0.0.0' || 
-                      hostname.startsWith('192.168.') || 
-                      hostname.startsWith('10.') || 
-                      hostname.startsWith('172.') || 
-                      hostname.endsWith('.local') ||
-                      !hostname.includes('.');
+  const isSubdomain = hostname.startsWith('admin.') || hostname.startsWith('delivery.');
 
-  // In localhost development, use query parameter switcher so no /etc/hosts changes are strictly mandatory
-  if (isLocalhost) {
-    const origin = window.location.origin;
-    if (panel === 'admin') return `${origin}/?panel=admin`;
-    if (panel === 'delivery') return `${origin}/?panel=delivery`;
-    return `${origin}/?panel=customer`;
+  // If already on a dedicated subdomain, keep subdomain URL structure
+  if (isSubdomain) {
+    const { customerBase, adminBase, deliveryBase } = getBaseUrls();
+    if (panel === 'admin') return adminBase;
+    if (panel === 'delivery') return deliveryBase;
+    return customerBase;
   }
 
-  const { customerBase, adminBase, deliveryBase } = getBaseUrls();
-  if (panel === 'admin') return adminBase;
-  if (panel === 'delivery') return deliveryBase;
-  return customerBase;
+  // Default clean path routes on standard domain / localhost / Netlify
+  const origin = window.location.origin;
+  if (panel === 'admin') return `${origin}/admin`;
+  if (panel === 'delivery') return `${origin}/dp`;
+  return `${origin}/`;
 }

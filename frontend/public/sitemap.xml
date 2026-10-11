@@ -7,14 +7,63 @@
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://arogyabhog.com/arogyaBhog_logo.png</image:loc>
-      <image:title>ArogyaBhog Stone-Milled Ayurvedic Atta</image:title>
-      <image:caption>Traditional Ayurvedic and Health Multigrain Atta</image:caption>
+      <image:title>Arogya Bhog</image:title>
+      <image:caption>Traditional Stone-Milled Whole Grain Health Atta</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://arogyabhog.com/#doctor-blends</loc>
+    <loc>https://arogyabhog.com/#product/everyday-soft-multigrain-atta</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>Everyday Soft Multigrain Atta | Arogya Bhog</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://arogyabhog.com/#product/sugar-care-atta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>Sugar Care Atta | Arogya Bhog</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://arogyabhog.com/#product/thyro-care-atta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>Thyro Care Atta | Arogya Bhog</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://arogyabhog.com/#product/high-protein-atta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>High Protein Atta | Arogya Bhog</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://arogyabhog.com/#product/vitality-atta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>Vitality Atta | Arogya Bhog</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://arogyabhog.com/#product/my-choice-atta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&amp;fit=crop&amp;w=800&amp;q=80</image:loc>
+      <image:title>Custom Multigrain Atta | My Choice Atta | Arogya Bhog</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://arogyabhog.com/#custom-blender</loc>
@@ -25,20 +74,5 @@
     <loc>https://arogyabhog.com/#ayurvedic-ai</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://arogyabhog.com/#diabetic-atta</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://arogyabhog.com/#thyroid-atta</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://arogyabhog.com/#high-protein-atta</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
   </url>
 </urlset>

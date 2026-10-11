@@ -15,9 +15,22 @@ const authRoutes = require('./routes/authRoutes');
 const operationalCostRoutes = require('./routes/operationalCostRoutes');
 const siteContentRoutes = require('./routes/siteContentRoutes');
 const { router: deliveryAreaRoutes } = require('./routes/deliveryAreaRoutes');
+const recoveryRoutes = require('./routes/recoveryRoutes');
+const couponRoutes = require('./routes/couponRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// Trust reverse proxy (Render / Netlify / Cloudflare)
+app.set('trust proxy', 1);
+
+// Permanent 301 HTTPS Redirection in production
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
 
 // Production security headers via Helmet
 app.use(helmet({
@@ -104,12 +117,14 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/recovery', recoveryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/grains', grainRoutes);
 app.use('/api/orders', orderLimiter, orderRoutes);
 app.use('/api/operational-costs', operationalCostRoutes);
 app.use('/api/site-content', siteContentRoutes);
 app.use('/api/delivery-areas', deliveryAreaRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // Health route
 app.get('/api/health', (req, res) => {
