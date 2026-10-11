@@ -400,6 +400,7 @@ export function App() {
               onOpenCustomBlender={() => {
                 handleBackFromProductDetail();
               }}
+              cart={cart}
             />
           ) : (
             <FlourStudioView

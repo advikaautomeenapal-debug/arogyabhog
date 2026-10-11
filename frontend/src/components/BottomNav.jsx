@@ -60,7 +60,7 @@ export function BottomNav({ currentTab, onSelectTab, user, cart = [], onOpenCart
               <div className="relative">
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.6]'}`} />
                 {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 bg-[#C9A227] text-white text-[9px] font-bold px-1 min-w-[15px] h-[15px] flex items-center justify-center rounded-full leading-none shadow-sm">
+                  <span className="absolute -top-1.5 -right-2.5 bg-red-600 text-white text-[10px] font-extrabold px-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full leading-none shadow-md ring-2 ring-white dark:ring-[#111111]">
                     {tab.count}
                   </span>
                 )}

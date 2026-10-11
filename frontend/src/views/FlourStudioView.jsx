@@ -513,6 +513,13 @@ export function FlourStudioView({
                 const hasValidationError = !!productValidationErrors[product._id];
                 const isAdding = addingProductId === product._id;
 
+                // Reactive cart state detection
+                const cartItem = (cart || []).find(item => 
+                  (item.productId === product._id || item.name === product.name) && 
+                  Number(item.batchSizeKg) === Number(currentPack)
+                );
+                const inCartQty = cartItem ? (cartItem.quantity || 1) : 0;
+
                 const badgeColorClass = 
                   product.badgeType === 'blue' ? 'border-sky-500/40 text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/20' :
                   product.badgeType === 'green' ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' :
@@ -523,62 +530,71 @@ export function FlourStudioView({
                 return (
                   <div
                     key={product._id}
-                    className="p-3.5 sm:p-5 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227]/70 transition-all space-y-2.5 sm:space-y-3.5 relative shadow-sm group"
+                    className="p-4 sm:p-5 bg-white dark:bg-[#181818] border-2 border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227] transition-all space-y-3 sm:space-y-3.5 relative shadow-sm group"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-0.5 sm:space-y-1">
-                        <span className={`inline-flex items-center text-[9px] sm:text-[10px] font-bold tracking-caps uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border ${badgeColorClass}`}>
+                    {/* Header Row: Product Title & Pack Price with Clear Headings */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <span className={`inline-flex items-center text-[10px] sm:text-xs font-black tracking-caps uppercase px-2.5 py-1 rounded-lg border ${badgeColorClass}`}>
                           {product.badge}
                         </span>
                         <h3 
                           onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
-                          className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-tight cursor-pointer"
+                          className="font-editorial text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-tight cursor-pointer"
                           title={`View ${product.name} recipe and nutrition details`}
                         >
                           {product.name}
                         </h3>
                         {product.tagline && (
-                          <p className="font-sans text-[11px] sm:text-xs text-[#C9A227] italic line-clamp-1 sm:line-clamp-none">
-                            {product.tagline}
-                          </p>
+                          <div className="pt-0.5">
+                            <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-[#C9A227] block">
+                              Primary Health Benefit:
+                            </span>
+                            <p className="font-sans text-xs sm:text-sm font-bold text-gray-800 dark:text-[#EDE8DF] leading-snug">
+                              {product.tagline}
+                            </p>
+                          </div>
                         )}
                       </div>
 
                       <div className="text-right flex-shrink-0 pl-2">
+                        <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-gray-500 dark:text-[#99907C] block">
+                          Pack Price:
+                        </span>
                         {product.mrpPrice > product.sellingPrice && (
-                          <span className="text-[10px] sm:text-xs text-gray-400 dark:text-[#99907C] line-through block">
+                          <span className="text-xs text-gray-400 dark:text-[#99907C] line-through block font-semibold">
                             ₹{Math.round(product.mrpPrice * currentPack)}
                           </span>
                         )}
-                        <div className="flex items-baseline justify-end space-x-0.5">
-                          <span className="font-sans font-bold text-lg sm:text-xl md:text-2xl text-gray-900 dark:text-[#FDFBF7]">
+                        <div className="flex items-baseline justify-end space-x-1">
+                          <span className="font-sans font-black text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-[#FDFBF7]">
                             ₹{packPrice}
                           </span>
-                          <span className="text-[10px] sm:text-xs text-gray-500 dark:text-[#99907C]">
+                          <span className="text-xs sm:text-sm font-black text-[#C9A227]">
                             ({currentPack} kg)
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Exact Grain Composition - HIDDEN ON MOBILE FOR COMPACT VIEW */}
-                    <div className="hidden md:block space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between text-[10px] uppercase tracking-caps">
-                        <span className="text-gray-500 dark:text-[#8B826F] font-bold">
-                          EXACT GRAIN COMPOSITION:
+                    {/* Exact Grain Composition - Fully Visible with Clear Heading on All Devices */}
+                    <div className="space-y-1.5 pt-1 border-t border-gray-100 dark:border-[#2E2A20]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] sm:text-xs uppercase font-black tracking-wider text-gray-900 dark:text-[#FDFBF7] flex items-center gap-1.5">
+                          <span>Exact Grain Composition:</span>
                         </span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Natural Cold Stone Milled
+                        <span className="text-[10px] sm:text-xs text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-wide">
+                          ✓ Cold Stone Milled
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {product.grains && product.grains.map((g, idx) => (
                           <span
                             key={idx}
-                            className="text-[11px] px-2.5 py-1 bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] rounded-lg text-gray-800 dark:text-[#E5E2E1]"
+                            className="text-xs font-bold px-2.5 py-1 bg-gray-100 dark:bg-[#202020] border border-gray-300 dark:border-[#333027] rounded-lg text-gray-900 dark:text-[#FDFBF7] shadow-xs"
                           >
-                            <span className="text-[#C9A227] font-semibold">{g.percentage}%</span> {g.name}
+                            <span className="text-[#C9A227] font-black">{g.percentage}%</span> {g.name}
                           </span>
                         ))}
                       </div>
@@ -586,42 +602,48 @@ export function FlourStudioView({
 
                     {/* Pending Cost Notice (e.g. RM-018 Methi Seeds in Vitality Atta) */}
                     {product.costBreakdown?.hasIncompleteCost && (
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-600/40 text-amber-900 dark:text-amber-300 text-[11px] sm:text-xs flex items-center space-x-2">
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-600/40 text-amber-900 dark:text-amber-300 text-xs flex items-center space-x-2 font-bold">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
                         <span><strong>Rate Notice:</strong> {product.costBreakdown.incompleteCostReason || 'Ingredient rate awaiting admin quotation.'}</span>
                       </div>
                     )}
 
+                    {/* Recommended Dietary Target - Visible on All Screens with Clear Heading */}
                     {product.target && (
-                      <p className="hidden sm:block text-[11px] text-gray-600 dark:text-[#99907C] border-l-2 border-[#C9A227]/40 pl-2.5 py-0.5">
-                        <strong className="text-gray-900 dark:text-[#D0C5AF]">Target:</strong> {product.target}
-                      </p>
+                      <div className="pt-1">
+                        <span className="text-[11px] sm:text-xs uppercase font-black tracking-wider text-gray-900 dark:text-[#FDFBF7] block">
+                          Recommended For / Dietary Goal:
+                        </span>
+                        <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-[#D0C5AF] border-l-2 border-[#C9A227] pl-2.5 py-1 mt-1 bg-amber-50/40 dark:bg-[#1E1B13] rounded-r-lg leading-snug">
+                          {product.target}
+                        </p>
+                      </div>
                     )}
 
                     {/* Action Bar: Size Switcher & High-Visibility Prominent Add to Cart Button */}
                     <div className="pt-2 sm:pt-3 border-t border-gray-100 dark:border-[#2E2A20] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
                       <div className="flex items-center justify-between sm:justify-start space-x-2">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="text-[11px] sm:text-xs text-gray-500 dark:text-[#99907C] uppercase font-bold tracking-wider">
-                            Size:
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-black text-gray-900 dark:text-[#FDFBF7] uppercase tracking-wider">
+                            Select Size:
                           </span>
-                          <div className="flex border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] rounded-xl p-0.5">
+                          <div className="flex border border-gray-300 dark:border-[#2E2A20] bg-gray-100 dark:bg-[#141414] rounded-xl p-0.5">
                             <button
                               onClick={() => handleSelectPackSize(product._id, 5)}
-                              className={`px-3 py-1 sm:py-1.5 text-xs font-bold uppercase rounded-lg transition-all ${
+                              className={`px-3 py-1 sm:py-1.5 text-xs font-black uppercase rounded-lg transition-all ${
                                 currentPack === 5
                                   ? 'bg-[#C9A227] text-white shadow-sm'
-                                  : 'text-gray-600 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
+                                  : 'text-gray-700 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
                               }`}
                             >
                               5 kg
                             </button>
                             <button
                               onClick={() => handleSelectPackSize(product._id, 10)}
-                              className={`px-3 py-1 sm:py-1.5 text-xs font-bold uppercase rounded-lg transition-all ${
+                              className={`px-3 py-1 sm:py-1.5 text-xs font-black uppercase rounded-lg transition-all ${
                                 currentPack === 10
                                   ? 'bg-[#C9A227] text-white shadow-sm'
-                                  : 'text-gray-600 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
+                                  : 'text-gray-700 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
                               }`}
                             >
                               10 kg
@@ -675,17 +697,29 @@ export function FlourStudioView({
                           <span>Customize Recipe</span>
                         </button>
 
-                        {/* High Visibility, Prominent Add to Cart Button */}
+                        {/* High Visibility, Prominent Add to Cart Button with Reactive State */}
                         <button
                           onClick={() => handleAddProductToCart(product)}
                           disabled={isAdding}
-                          className="flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md bg-[#C9A227] hover:bg-[#B58F1E] active:scale-[0.98] text-white cursor-pointer"
+                          className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md active:scale-[0.98] cursor-pointer ${
+                            inCartQty > 0
+                              ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600 shadow-emerald-900/10'
+                              : 'bg-[#C9A227] hover:bg-[#B58F1E] text-white'
+                          }`}
                         >
-                          <ShoppingCart className="w-4 h-4 stroke-[2.2]" />
+                          {inCartQty > 0 ? (
+                            <Check className="w-4 h-4 stroke-[2.5]" />
+                          ) : (
+                            <ShoppingCart className="w-4 h-4 stroke-[2.2]" />
+                          )}
                           <span>
                             {isAdding 
                               ? 'Adding...' 
-                              : `Add to Cart • ₹${packPrice}`}
+                              : inCartQty > 0
+                                ? inCartQty === 1
+                                  ? 'Added to Cart ✓'
+                                  : `Added ✓ (${inCartQty} in Cart)`
+                                : `Add to Cart • ₹${packPrice}`}
                           </span>
                         </button>
                       </div>
@@ -695,47 +729,60 @@ export function FlourStudioView({
               })}
 
               {/* PRODUCT 6: MY CHOICE ATTA (Bespoke Customer Blend strictly 10 kg) */}
-              <div className="p-3.5 sm:p-5 bg-gradient-to-br from-amber-500/10 via-[#C9A227]/10 to-transparent dark:bg-[#1f1d14] border-2 border-[#C9A227] rounded-2xl space-y-2.5 sm:space-y-3.5 relative shadow-md">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-0.5 sm:space-y-1">
-                    <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold tracking-caps uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
+              <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-500/10 via-[#C9A227]/10 to-transparent dark:bg-[#1f1d14] border-2 border-[#C9A227] rounded-2xl space-y-3.5 relative shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <span className="inline-flex items-center text-[10px] sm:text-xs font-black tracking-caps uppercase px-2.5 py-1 rounded-lg border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
                       CUSTOMER BESPOKE BLEND • STRICTLY 10 KG
                     </span>
                     <h3 
                       onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
-                      className="font-editorial text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-[#FDFBF7] cursor-pointer hover:text-[#C9A227] transition-colors"
+                      className="font-editorial text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-[#FDFBF7] cursor-pointer hover:text-[#C9A227] transition-colors leading-tight"
                       title="View My Choice Atta Details"
                     >
                       My Choice Atta
                     </h3>
-                    <p className="font-sans text-[11px] sm:text-xs text-[#C9A227] italic">
-                      Customer-Customizable Bespoke Grain Flour Laboratory
-                    </p>
+                    <div className="pt-0.5">
+                      <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-[#C9A227] block">
+                        Custom Formulation:
+                      </span>
+                      <p className="font-sans text-xs sm:text-sm font-bold text-gray-800 dark:text-[#EDE8DF] leading-snug">
+                        Customer-Customizable Bespoke Grain Flour Laboratory
+                      </p>
+                    </div>
                   </div>
 
                   <div className="text-right flex-shrink-0 pl-2">
-                    <span className="font-sans font-bold text-lg sm:text-xl md:text-2xl text-[#C9A227]">
+                    <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-gray-500 dark:text-[#99907C] block">
+                      Estimated Rate:
+                    </span>
+                    <span className="font-sans font-black text-xl sm:text-2xl md:text-3xl text-[#C9A227]">
                       ₹85
                     </span>
-                    <span className="text-[10px] sm:text-xs text-gray-500 dark:text-[#99907C] block">
+                    <span className="text-xs sm:text-sm font-black text-gray-700 dark:text-[#D0C5AF] block">
                       /kg (Avg) • 10 kg Batch
                     </span>
                   </div>
                 </div>
 
-                <p className="font-sans text-[11px] sm:text-xs text-gray-600 dark:text-[#99907C] leading-relaxed hidden sm:block">
-                  Your personal flour laboratory. Hand-select your preferred whole grains, ancient millets, pulses, and seeds from our 18 master ingredients to total exactly 10 kg. Ground fresh upon order placement.
-                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] sm:text-xs uppercase font-black tracking-wider text-gray-900 dark:text-[#FDFBF7] block">
+                    How Bespoke Milling Works:
+                  </span>
+                  <p className="font-sans text-xs sm:text-sm font-bold text-gray-800 dark:text-[#D0C5AF] leading-relaxed mt-1 bg-[#C9A227]/10 p-2.5 rounded-xl border border-[#C9A227]/30">
+                    Your personal flour laboratory. Hand-select your preferred whole grains, ancient millets, pulses, and seeds from our 18 master ingredients to total exactly 10 kg. Ground fresh upon order placement.
+                  </p>
+                </div>
 
                 <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-t border-[#C9A227]/30">
-                  <span className="text-[11px] sm:text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-                    ✓ Custom fineness • Live pricing • Full ingredient control
+                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                    ✓ Custom Fineness • Live Pricing • Full Ingredient Control
                   </span>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
-                      className="py-2.5 px-3 rounded-xl border border-gray-300 dark:border-[#3E3A2F] text-gray-700 dark:text-[#D0C5AF] hover:text-[#C9A227] hover:border-[#C9A227] font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-1.5 transition-all shadow-sm"
+                      className="py-2.5 px-3.5 rounded-xl border border-gray-300 dark:border-[#3E3A2F] text-gray-900 dark:text-[#D0C5AF] hover:text-[#C9A227] hover:border-[#C9A227] font-black text-xs uppercase tracking-caps flex items-center justify-center space-x-1.5 transition-all shadow-sm"
                       title="View My Choice Atta Details & Concept"
                     >
                       <Info className="w-3.5 h-3.5" />

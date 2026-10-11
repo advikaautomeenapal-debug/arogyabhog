@@ -20,7 +20,8 @@ export function ProductDetailView({
   onBackToStudio,
   onSelectProduct,
   onOpenCustomBlender,
-  onOpenCart
+  onOpenCart,
+  cart = []
 }) {
   const seoData = PRODUCT_SEO_CATALOG[slug] || PRODUCT_SEO_CATALOG['everyday-soft-multigrain-atta'];
   
@@ -79,6 +80,12 @@ export function ProductDetailView({
   }, [seoData]);
 
   const packPrice = Math.round(product.sellingPrice * selectedPackSize);
+
+  const cartItem = (cart || []).find(item => 
+    (item.productId === (product._id || product.productId) || item.name === product.name) && 
+    Number(item.batchSizeKg) === Number(selectedPackSize)
+  );
+  const inCartQty = cartItem ? (cartItem.quantity || 1) : 0;
 
   const handleAddThisToCart = () => {
     if (isCustom) {
@@ -248,19 +255,31 @@ export function ProductDetailView({
             </div>
           </div>
 
-          {/* Add to Cart Primary Button */}
+          {/* Add to Cart Primary Button with Reactive In-Cart State */}
           <div className="space-y-2 pt-2">
             <button
               onClick={handleAddThisToCart}
               disabled={isAdding}
-              className="w-full py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md bg-[#C9A227] hover:bg-[#B58F1E] active:scale-[0.98] text-white cursor-pointer"
+              className={`w-full py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md active:scale-[0.98] cursor-pointer ${
+                isAdding
+                  ? 'bg-amber-600 text-white'
+                  : inCartQty > 0
+                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600 shadow-md ring-2 ring-emerald-500/20'
+                  : 'bg-[#C9A227] hover:bg-[#B58F1E] text-white'
+              }`}
             >
-              <ShoppingCart className="w-4 h-4 stroke-[2.2]" />
+              {inCartQty > 0 ? (
+                <Check className="w-4 h-4 stroke-[2.5]" />
+              ) : (
+                <ShoppingCart className="w-4 h-4 stroke-[2.2]" />
+              )}
               <span>
                 {isAdding 
                   ? 'Adding to Cart...' 
                   : isCustom
                   ? 'Open Custom Blender (10 kg)'
+                  : inCartQty > 0
+                  ? (inCartQty === 1 ? `Added to Cart ✓ (${selectedPackSize} kg)` : `Added ✓ (${inCartQty} in Cart • ${selectedPackSize} kg)`)
                   : `Add ${selectedPackSize} kg to Cart • ₹${packPrice}`}
               </span>
             </button>
@@ -293,16 +312,21 @@ export function ProductDetailView({
           {seoData.ingredients.map((ing, idx) => (
             <div 
               key={idx}
-              className="p-3 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] space-y-1"
+              className="p-3 sm:p-3.5 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] space-y-1.5"
             >
-              <div className="flex justify-between items-center text-xs font-bold text-gray-900 dark:text-[#FDFBF7]">
+              <div className="flex justify-between items-center text-xs sm:text-sm font-black text-gray-900 dark:text-[#FDFBF7]">
                 <span>{ing.name}</span>
-                <span className="text-[#C9A227] font-mono">{ing.percentage}%</span>
+                <span className="text-[#C9A227] font-black">{ing.percentage}%</span>
               </div>
               {ing.role && (
-                <p className="text-[10px] text-gray-500 dark:text-[#8B826F]">
-                  {ing.role}
-                </p>
+                <div className="pt-0.5">
+                  <span className="text-[10px] uppercase font-black text-[#C9A227] tracking-wider block">
+                    Nutritional Benefit:
+                  </span>
+                  <p className="text-xs font-semibold text-gray-800 dark:text-[#D0C5AF] leading-snug mt-0.5">
+                    {ing.role}
+                  </p>
+                </div>
               )}
             </div>
           ))}

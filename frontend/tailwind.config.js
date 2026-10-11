@@ -33,9 +33,9 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['Georgia', '"Times New Roman"', 'serif'],
-        sans: ['Georgia', '"Times New Roman"', 'serif'],
-        editorial: ['Georgia', '"Times New Roman"', 'serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        serif: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        editorial: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
       letterSpacing: {
         caps: '0.16em',

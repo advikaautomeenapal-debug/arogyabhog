@@ -53,72 +53,63 @@ export function CartModal({ isOpen, onClose, cart, onUpdateQuantity, onRemoveIte
             cart.map((item, idx) => (
               <div 
                 key={idx}
-                className="p-4 bg-gray-50 dark:bg-[#1F1F1F] border border-gray-200 dark:border-[#2E2A20] rounded-2xl space-y-2.5 relative shadow-sm"
+                className="p-3.5 bg-gray-50 dark:bg-[#1C1C1C] border border-gray-200 dark:border-[#2E2A20] rounded-2xl flex items-center gap-3 relative shadow-xs hover:border-[#C9A227]/50 transition-colors"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-caps text-[#C9A227] font-bold block">
-                      {item.isCustom ? 'CUSTOM CHAKKI FORMULA' : 'SIGNATURE DOCTOR RECIPE'}
-                    </span>
-                    <h3 className="font-editorial text-sm font-semibold text-gray-900 dark:text-[#FDFBF7] mt-0.5">
-                      {item.name}
-                    </h3>
-                    <p className="text-[11px] text-gray-500 dark:text-[#99907C]">
-                      Pack Size: <span className="text-gray-900 dark:text-[#FDFBF7] font-medium">{item.batchSizeKg} kg</span> • Fineness: <span className="text-[#C9A227]">{item.fineness || 'Medium (Phulka)'}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => onRemoveItem(idx)}
-                    className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
-                    aria-label="Remove item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                {/* Product Thumbnail */}
+                <div className="w-14 h-14 rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] flex-shrink-0 flex items-center justify-center overflow-hidden p-1">
+                  <img 
+                    src={item.image || "/arogyaBhog_logo.png"} 
+                    alt={item.name} 
+                    className="w-full h-full object-contain"
+                    onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                  />
                 </div>
 
-                {/* Grain breakdown summary */}
-                {item.grainBreakdown && item.grainBreakdown.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-gray-200 dark:border-[#2E2A20]/60">
-                    {item.grainBreakdown.slice(0, 5).map((g, gi) => (
-                      <span key={gi} className="text-[9px] px-2 py-0.5 bg-white dark:bg-[#161616] text-gray-700 dark:text-[#D0C5AF] border border-gray-200 dark:border-[#2E2A20] rounded-md">
-                        {g.percentage}% {g.name.split(' ')[0]}
-                      </span>
-                    ))}
-                    {item.grainBreakdown.length > 5 && (
-                      <span className="text-[9px] px-2 py-0.5 bg-white dark:bg-[#161616] text-[#C9A227] border border-gray-200 dark:border-[#2E2A20] rounded-md">
-                        +{item.grainBreakdown.length - 5} more
-                      </span>
-                    )}
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-[#FDFBF7] truncate" title={item.name}>
+                    {item.name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-[#99907C] mt-0.5">
+                    <span className="font-medium text-gray-700 dark:text-[#D0C5AF]">{item.batchSizeKg} kg Pack</span>
+                    <span>•</span>
+                    <span className="truncate">{item.fineness || 'Medium (Phulka)'}</span>
                   </div>
-                )}
+                  <div className="font-sans font-bold text-sm text-[#C9A227] mt-1">
+                    ₹{item.totalItemPrice}
+                  </div>
+                </div>
 
-                {/* Quantity & Item Total */}
-                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#2E2A20]">
-                  <div className="flex items-center border border-gray-200 dark:border-[#2E2A20] bg-white dark:bg-[#161616] rounded-xl overflow-hidden">
+                {/* Quantity Controls & Delete */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center border border-gray-200 dark:border-[#2E2A20] bg-white dark:bg-[#141414] rounded-lg overflow-hidden shadow-xs">
                     <button
                       onClick={() => onUpdateQuantity(idx, item.quantity - 1)}
-                      className="px-2.5 py-1 text-sm text-gray-700 dark:text-[#FDFBF7] hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition-colors"
+                      className="w-7 h-7 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-[#D0C5AF] hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition-colors"
+                      aria-label="Decrease quantity"
                     >
-                      -
+                      −
                     </button>
-                    <span className="px-3 text-xs font-bold text-[#C9A227]">
+                    <span className="w-7 text-center text-xs font-bold text-gray-900 dark:text-[#FDFBF7]">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => onUpdateQuantity(idx, item.quantity + 1)}
-                      className="px-2.5 py-1 text-sm text-gray-700 dark:text-[#FDFBF7] hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition-colors"
+                      className="w-7 h-7 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-[#D0C5AF] hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition-colors"
+                      aria-label="Increase quantity"
                     >
                       +
                     </button>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-gray-500 dark:text-[#99907C] block">
-                      {item.pricePerKg ? `₹${item.pricePerKg}/kg` : ''}
-                    </span>
-                    <span className="font-sans font-bold text-base text-[#C9A227]">
-                      ₹{item.totalItemPrice}
-                    </span>
-                  </div>
+
+                  <button
+                    onClick={() => onRemoveItem(idx)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                    title="Remove item"
+                    aria-label="Remove item"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))
