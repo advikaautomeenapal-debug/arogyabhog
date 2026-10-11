@@ -54,6 +54,20 @@ export const api = {
     }
   },
 
+  async checkMobile(phone) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/check-mobile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API Error (checkMobile):', err);
+      return { success: false, message: err.message };
+    }
+  },
+
   async sendPasswordResetOtp(phone) {
     try {
       const res = await fetch(`${API_BASE}/auth/forgot-password/send-otp`, {

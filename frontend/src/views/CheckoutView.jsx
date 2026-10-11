@@ -31,7 +31,11 @@ import {
   Info,
   Tag,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { buildUpiUri, MERCHANT_UPI_ID, MERCHANT_NAME } from '../utils/upiHelper';
@@ -43,7 +47,8 @@ export function CheckoutView({
   onBackToStudio, 
   onOrderSuccess,
   onNavigateToOrders,
-  onOpenAuth
+  onOpenAuth,
+  onLoginSuccess
 }) {
   // Payment method: Cash on Delivery (COD by default)
   const [selectedMethod, setSelectedMethod] = useState('COD');
@@ -97,6 +102,201 @@ export function CheckoutView({
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [deliveryValidationError, setDeliveryValidationError] = useState('');
   const [addressActionMsg, setAddressActionMsg] = useState('');
+
+  // ========================================================
+  // SMART MOBILE DETECTION & INLINE CHECKOUT AUTHENTICATION
+  // ========================================================
+  const [authPhone, setAuthPhone] = useState(user?.phone || '');
+  const [isCheckingMobile, setIsCheckingMobile] = useState(false);
+  const [mobileCheckResult, setMobileCheckResult] = useState(null); // { checked: true, exists: boolean, phone: string }
+  const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+
+  // Sync authPhone when user changes
+  useEffect(() => {
+    if (user?.phone) {
+      setAuthPhone(user.phone);
+    }
+  }, [user]);
+
+  // Debounced Mobile Number Check (Case A & Case B)
+  useEffect(() => {
+    if (user) {
+      setIsCheckingMobile(false);
+      setMobileCheckResult(null);
+      return;
+    }
+
+    const cleanInput = (authPhone || '').replace(/\D/g, '').slice(-10);
+    if (cleanInput.length === 10 && /^[6-9]\d{9}$/.test(cleanInput)) {
+      setIsCheckingMobile(true);
+      setAuthError('');
+
+      const timer = setTimeout(async () => {
+        try {
+          const res = await api.checkMobile(cleanInput);
+          if (res && res.success) {
+            setMobileCheckResult({
+              checked: true,
+              exists: Boolean(res.exists),
+              phone: cleanInput
+            });
+            // Auto-update delivery contact number
+            setDeliveryInfo(prev => ({
+              ...prev,
+              contactNumber: cleanInput
+            }));
+          } else {
+            setAuthError(res?.message || 'Could not verify mobile number.');
+            setMobileCheckResult(null);
+          }
+        } catch (err) {
+          console.error('Error verifying mobile:', err);
+          setAuthError('Network error checking mobile number.');
+          setMobileCheckResult(null);
+        } finally {
+          setIsCheckingMobile(false);
+        }
+      }, 350);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsCheckingMobile(false);
+      setMobileCheckResult(null);
+    }
+  }, [authPhone, user]);
+
+  // Case B: Existing Customer Inline Login
+  const handleCheckoutLogin = async (e) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+    const clean = (authPhone || '').replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) {
+      setAuthError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (!authPassword) {
+      setAuthError('Please enter your account password.');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      const res = await api.login(clean, authPassword);
+      if (res && res.success && res.user) {
+        if (onLoginSuccess) {
+          onLoginSuccess(res.user);
+        }
+        setDeliveryInfo(prev => ({
+          ...prev,
+          name: res.user.name || prev.name,
+          contactNumber: res.user.phone || clean,
+          address: res.user.address || prev.address,
+          sector: res.user.sector || prev.sector,
+          city: res.user.city || prev.city || 'Kanpur',
+          state: res.user.state || prev.state || 'Uttar Pradesh',
+          pincode: res.user.pincode || prev.pincode || '208016'
+        }));
+        setAuthPassword('');
+        setMobileCheckResult(null);
+        setDeliveryValidationError('');
+      } else {
+        setAuthError(res?.message || 'Invalid mobile number or password.');
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  // Case A: New Customer Inline Registration & Seamless Order Flow
+  const handleCheckoutRegister = async (e) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+    const clean = (authPhone || '').replace(/\D/g, '').slice(-10);
+    const fullName = (deliveryInfo.name || '').trim();
+    const addr = (deliveryInfo.address || '').trim();
+    const cleanPin = (deliveryInfo.pincode || '').toString().trim().replace(/\D/g, '');
+
+    if (!fullName) {
+      setAuthError('Please enter your Full Name.');
+      return;
+    }
+    if (clean.length !== 10) {
+      setAuthError('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    if (!authPassword || authPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (!addr || addr.length < 5) {
+      setAuthError('Please enter your complete delivery address (House / Flat / Street).');
+      return;
+    }
+    if (cleanPin.length !== 6) {
+      setAuthError('Please enter a valid 6-digit Indian PIN code (e.g. 208016).');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      const regPayload = {
+        name: fullName,
+        phone: clean,
+        password: authPassword,
+        address: addr,
+        sector: (deliveryInfo.sector || '').trim(),
+        city: (deliveryInfo.city || 'Kanpur').trim(),
+        state: (deliveryInfo.state || 'Uttar Pradesh').trim(),
+        pincode: cleanPin
+      };
+
+      const res = await api.register(regPayload);
+      if (res && res.success && res.user) {
+        if (onLoginSuccess) {
+          onLoginSuccess(res.user);
+        }
+        setDeliveryInfo(prev => ({
+          ...prev,
+          name: res.user.name,
+          contactNumber: res.user.phone || clean,
+          address: res.user.address,
+          sector: res.user.sector,
+          city: res.user.city || 'Kanpur',
+          state: res.user.state || 'Uttar Pradesh',
+          pincode: res.user.pincode || cleanPin
+        }));
+        setAuthPassword('');
+        setMobileCheckResult(null);
+        setDeliveryValidationError('');
+      } else {
+        setAuthError(res?.message || 'Registration failed. Please check your details.');
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Registration error');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  // WhatsApp Password Recovery Handler
+  const handleWhatsAppForgotPassword = (e) => {
+    if (e) e.preventDefault();
+    const clean = (authPhone || '').replace(/\D/g, '').slice(-10);
+    const prefilledText = `Hi Arogya Bhog Admin,\n\nI have forgotten my Arogya Bhog account password and need help resetting it.\n\nRegistered mobile number: ${clean}\n\nPlease help me reset my password.\n\nThank you.`;
+    const adminWhatsApp = '919621496772';
+    const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(prefilledText)}`;
+
+    try {
+      api.initiatePasswordRecovery(clean);
+    } catch (err) {}
+
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Real-time Serviceability Verification
   useEffect(() => {
@@ -479,7 +679,13 @@ export function CheckoutView({
   // Submit order with single-click lock to prevent duplicate orders
   const handleConfirmOrder = async () => {
     if (!user) {
-      if (onOpenAuth) onOpenAuth();
+      if (mobileCheckResult?.exists) {
+        setAuthError('Please enter your password and click "Login & Continue" above to proceed.');
+      } else if (mobileCheckResult && !mobileCheckResult.exists) {
+        setAuthError('Please complete your details and click "Create Account & Continue" above to proceed.');
+      } else {
+        setAuthError('Please enter your 10-digit mobile number above to verify your account.');
+      }
       return;
     }
 
@@ -758,25 +964,31 @@ export function CheckoutView({
         </div>
       </div>
 
-      {/* CUSTOMER LOGIN REQUIREMENT BANNER (IF NOT LOGGED IN) */}
+      {/* SMART CHECKOUT AUTHENTICATION NOTICE (IF NOT LOGGED IN) */}
       {!user && (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-[#201c13] border-2 border-[#C9A227] space-y-2.5 shadow-md">
-          <div className="flex items-center space-x-2 text-amber-800 dark:text-[#C9A227]">
-            <Lock className="w-5 h-5 text-[#C9A227]" />
-            <h3 className="font-serif text-sm font-bold uppercase tracking-wider">
-              Customer Authentication Required
-            </h3>
+        <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-[#1a1711] border border-[#C9A227]/60 flex items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#C9A227]/15 flex items-center justify-center text-[#C9A227] flex-shrink-0">
+              <Smartphone className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-serif text-xs font-bold text-gray-900 dark:text-[#fdfbf7] uppercase tracking-wider">
+                Smart Mobile Checkout
+              </h3>
+              <p className="text-[11px] text-gray-600 dark:text-[#a89f8d]">
+                Enter your mobile number below. We automatically verify whether you have an existing account or help you create one seamlessly!
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-gray-700 dark:text-[#d0c5af] leading-relaxed">
-            Please sign in or create an account to finalize your order. Your cart contents and custom blend selections are fully preserved!
-          </p>
-          <button
-            onClick={onOpenAuth}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md"
-          >
-            <User className="w-4 h-4" />
-            <span>Sign In to Continue Checkout</span>
-          </button>
+          {onOpenAuth && (
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="text-[10px] uppercase font-bold text-[#C9A227] hover:underline whitespace-nowrap flex-shrink-0"
+            >
+              Sign In Modal
+            </button>
+          )}
         </div>
       )}
 
@@ -818,8 +1030,277 @@ export function CheckoutView({
           </div>
         )}
 
-        {/* SAVED ADDRESS CARDS LIST */}
-        {user && savedAddresses.length > 0 ? (
+        {!user ? (
+          /* ========================================================
+             SMART MOBILE DETECTION & INLINE AUTHENTICATION FOR GUEST CUSTOMERS
+             ======================================================== */
+          <div className="space-y-4 pt-1">
+            {/* Contact Mobile Number Input */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase font-bold text-gray-700 dark:text-[#d0c5af] flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-[#C9A227]" />
+                  <span>Mobile Number for Order & Account</span>
+                  <span className="text-rose-500">*</span>
+                </span>
+                {isCheckingMobile && (
+                  <span className="text-[10px] text-[#C9A227] font-sans font-normal flex items-center space-x-1 animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin inline" />
+                    <span>Checking account...</span>
+                  </span>
+                )}
+              </label>
+
+              <div className="relative flex items-center">
+                <div className="absolute left-3 flex items-center space-x-1 text-xs font-mono font-bold text-gray-500 dark:text-[#8b826f] pointer-events-none select-none">
+                  <span>+91</span>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                </div>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={authPhone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setAuthPhone(val);
+                    setDeliveryInfo(prev => ({ ...prev, contactNumber: val }));
+                  }}
+                  placeholder="Enter 10-digit mobile (e.g. 9811234567)"
+                  className="w-full pl-14 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2e2a20] text-sm font-mono font-bold text-gray-900 dark:text-[#fdfbf7] placeholder:font-sans placeholder:font-normal placeholder:text-gray-400 dark:placeholder:text-[#6a6352] outline-none focus:border-[#C9A227] transition-all"
+                />
+                {authPhone.length === 10 && !isCheckingMobile && mobileCheckResult && (
+                  <div className="absolute right-3 text-emerald-500 dark:text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+
+              {authPhone.length < 10 && (
+                <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">
+                  Enter your 10-digit Indian mobile number. We automatically detect whether you have an existing account.
+                </p>
+              )}
+            </div>
+
+            {/* Auth Error Banner */}
+            {authError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300 text-xs flex items-center space-x-1.5 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {/* CASE B: Existing Customer Detected */}
+            {mobileCheckResult && mobileCheckResult.exists && (
+              <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-[#1e1b13] border-2 border-[#C9A227] space-y-3 animate-fadeIn">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] flex-shrink-0">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-[#fdfbf7]">
+                      Welcome back! Registered Account Found (+91 {mobileCheckResult.phone})
+                    </h4>
+                    <p className="text-[10px] text-gray-600 dark:text-[#a89f8d]">
+                      Please enter your password to sign in and load your saved delivery details.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleCheckoutLogin} className="space-y-3">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                      Account Password <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showAuthPassword ? 'text' : 'password'}
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        placeholder="Enter your account password"
+                        className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAuthPassword(!showAuthPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-[#fdfbf7]"
+                      >
+                        {showAuthPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] pt-0.5">
+                    <button
+                      type="button"
+                      onClick={handleWhatsAppForgotPassword}
+                      className="text-[#C9A227] hover:underline font-semibold flex items-center space-x-1"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-[#C9A227]" />
+                      <span>Forgot Password? WhatsApp Support</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAuth || !authPassword}
+                    className="w-full py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] disabled:opacity-50 text-white font-sans font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md transition-all"
+                  >
+                    {isSubmittingAuth ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Signing In...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Login & Continue</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* CASE A: New Customer Detected */}
+            {mobileCheckResult && !mobileCheckResult.exists && (
+              <div className="p-4 rounded-xl bg-amber-50/40 dark:bg-[#1a1813] border-2 border-[#C9A227]/70 space-y-3 animate-fadeIn">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] flex-shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-[#fdfbf7]">
+                      New Customer Detected (+91 {mobileCheckResult.phone})
+                    </h4>
+                    <p className="text-[10px] text-gray-600 dark:text-[#a89f8d]">
+                      Create a password and provide your delivery details to set up your account & place order.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleCheckoutRegister} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                        Full Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryInfo.name}
+                        onChange={(e) => setDeliveryInfo({ ...deliveryInfo, name: e.target.value })}
+                        placeholder="e.g. Rohit Verma"
+                        className="w-full p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                        Create Password (min 6 chars) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showAuthPassword ? 'text' : 'password'}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Set account password"
+                          className="w-full p-2.5 pr-10 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAuthPassword(!showAuthPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showAuthPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                      Complete Delivery Address (House / Flat / Tower / Street) <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      rows="2"
+                      value={deliveryInfo.address}
+                      onChange={(e) => setDeliveryInfo({ ...deliveryInfo, address: e.target.value })}
+                      placeholder="e.g. Tower 4, Flat 1102, The Palm Springs, Kalyanpur"
+                      className="w-full p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                        Sector / Area
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryInfo.sector}
+                        onChange={(e) => setDeliveryInfo({ ...deliveryInfo, sector: e.target.value })}
+                        placeholder="Kalyanpur"
+                        className="w-full p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                        City <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryInfo.city}
+                        onChange={(e) => setDeliveryInfo({ ...deliveryInfo, city: e.target.value })}
+                        placeholder="Kanpur"
+                        className="w-full p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-600 dark:text-[#8b826f] block mb-1">
+                        PIN Code <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={deliveryInfo.pincode}
+                        onChange={(e) => setDeliveryInfo({ ...deliveryInfo, pincode: e.target.value.replace(/\D/g, '') })}
+                        placeholder="208016"
+                        className="w-full p-2.5 rounded-xl bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#2e2a20] text-xs font-mono font-bold text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAuth}
+                    className="w-full py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] disabled:opacity-50 text-white font-sans font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md transition-all"
+                  >
+                    {isSubmittingAuth ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Creating Account & Securing Session...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Create Account & Continue</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        ) : savedAddresses.length > 0 ? (
+          /* SAVED ADDRESS CARDS LIST */
           <div className="space-y-2.5 pt-1">
             <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-[#8b826f] tracking-caps block">
               SELECT DELIVERY LOCATION:
@@ -917,7 +1398,7 @@ export function CheckoutView({
           <div className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-600 dark:text-[#a89f8d]">
-                {user ? 'No saved addresses yet. Enter your delivery location below:' : 'Enter your recipient & delivery details:'}
+                No saved addresses yet. Enter your delivery location below:
               </span>
             </div>
 
@@ -1353,7 +1834,13 @@ export function CheckoutView({
               {isSubmitting 
                 ? 'PLACING ORDER...' 
                 : !user 
-                ? 'LOGIN REQUIRED TO PLACE ORDER' 
+                ? (isSubmittingAuth 
+                    ? 'AUTHENTICATING...' 
+                    : mobileCheckResult?.exists 
+                    ? 'ENTER PASSWORD & LOGIN TO ORDER' 
+                    : mobileCheckResult 
+                    ? 'CREATE ACCOUNT & PLACE ORDER' 
+                    : 'ENTER MOBILE NUMBER TO CONTINUE')
                 : !isDeliveryComplete 
                 ? 'COMPLETE DELIVERY DETAILS' 
                 : `PLACE ORDER (CASH ON DELIVERY • ₹${totalPayable})`}

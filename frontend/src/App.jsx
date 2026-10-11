@@ -433,6 +433,7 @@ export function App() {
               onOrderSuccess={handleOrderSuccess}
               onNavigateToOrders={() => setCurrentTab('orders')}
               onOpenAuth={() => setIsAuthOpen(true)}
+              onLoginSuccess={handleLoginSuccess}
             />
           </ErrorBoundary>
         )}

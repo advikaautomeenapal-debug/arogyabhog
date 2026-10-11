@@ -282,6 +282,48 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// POST /api/auth/check-mobile
+// Automatic Mobile Number Detection & Smart Checkout Authentication endpoint.
+// PRIVACY & SECURITY:
+// 1. Returns ONLY { success: true, exists: Boolean(user) }.
+// 2. Never exposes passwords, password hashes, customer names, addresses, or order history.
+// 3. Validates and normalizes 10-digit Indian mobile numbers.
+router.post('/check-mobile', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '10-digit mobile number is required' 
+      });
+    }
+
+    const cleanPhone = normalizePhone(phone);
+    if (!isValidIndianPhone(cleanPhone)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please enter a valid 10-digit Indian mobile number (e.g. 9811234567)' 
+      });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { phone: cleanPhone },
+        { phone: `+91${cleanPhone}` },
+        { phone: `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}` }
+      ]
+    }).select('_id');
+
+    return res.json({
+      success: true,
+      exists: Boolean(user)
+    });
+  } catch (error) {
+    console.error('Check mobile error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ==========================================
 // FORGOT PASSWORD / MOBILE OTP FLOW
 // ==========================================
