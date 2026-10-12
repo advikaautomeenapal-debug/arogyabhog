@@ -1,0 +1,4 @@
+https://www.arogyabhog.com/*  https://arogyabhog.com/:splat  301!
+http://www.arogyabhog.com/*   https://arogyabhog.com/:splat  301!
+http://arogyabhog.com/*       https://arogyabhog.com/:splat  301!
+/*                            /index.html                    200
