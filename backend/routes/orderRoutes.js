@@ -807,7 +807,6 @@ router.post('/', async (req, res) => {
     let customerServiceMessage = '';
 
     if (!serviceability.serviceable) {
-      // REQUIREMENT 3: LOCATION IS OUTSIDE SERVICE AREA
       if (isPaidOnline) {
         // Unserviceable and Paid -> REFUND_PENDING
         assignedOrderStatus = 'REFUND_PENDING';
@@ -817,11 +816,12 @@ router.post('/', async (req, res) => {
         assignedRefundReason = 'Order placed in unserviceable delivery location';
         customerServiceMessage = "We’re sorry! Arogya Bhog is not yet available in your location. Your order cannot be delivered, so we will process your refund. You’ll receive an update once the refund is completed.";
       } else {
-        // Unserviceable and Unpaid -> CANCELLED_UNSERVICEABLE
-        assignedOrderStatus = 'CANCELLED_UNSERVICEABLE';
-        assignedPaymentStatus = 'FAILED';
-        assignedRefundStatus = 'NONE';
-        customerServiceMessage = "We’re sorry! Arogya Bhog is not delivering in your location yet. We’re working to make our products available near you soon. Please visit us again.";
+        // Reject unserviceable unpaid/COD order immediately
+        return res.status(400).json({
+          success: false,
+          isServiceable: false,
+          message: serviceability.message || "Sorry! We’re not accepting orders in your PIN code yet. We’re working to expand our delivery network and hope to serve your location soon."
+        });
       }
     } else {
       // Serviceable -> Check finished goods product stock

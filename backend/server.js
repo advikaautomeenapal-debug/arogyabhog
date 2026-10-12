@@ -17,6 +17,7 @@ const siteContentRoutes = require('./routes/siteContentRoutes');
 const { router: deliveryAreaRoutes } = require('./routes/deliveryAreaRoutes');
 const recoveryRoutes = require('./routes/recoveryRoutes');
 const couponRoutes = require('./routes/couponRoutes');
+const articleRoutes = require('./routes/articleRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -129,6 +130,7 @@ app.use('/api/operational-costs', operationalCostRoutes);
 app.use('/api/site-content', siteContentRoutes);
 app.use('/api/delivery-areas', deliveryAreaRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/articles', articleRoutes);
 
 // Health route
 app.get('/api/health', (req, res) => {

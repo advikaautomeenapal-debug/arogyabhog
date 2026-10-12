@@ -6,8 +6,7 @@ const Chakki = require('../models/Chakki');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
 /**
- * Helper to validate serviceability based strictly on City and DeliveryZone PIN codes
- * Decoupled completely from Chakki routing (Requirement 1 & 3)
+ * Helper to validate serviceability based on Chakki PIN configurations and DeliveryZones
  */
 async function evaluateServiceability(input) {
   let cleanCity = '';
@@ -22,7 +21,7 @@ async function evaluateServiceability(input) {
     items = input.items || [];
   }
 
-  if (!cleanPincode) {
+  if (!cleanPincode || !/^\d{6}$/.test(cleanPincode)) {
     return {
       serviceable: false,
       isServiceable: false,
@@ -31,63 +30,81 @@ async function evaluateServiceability(input) {
     };
   }
 
-  // 1. Look for active DeliveryZone containing this PIN code
-  const zoneQuery = {
-    pincodes: cleanPincode,
-    isActive: true,
+  // 1. Check active Chakkis for assigned and active PIN codes
+  const activeChakkis = await Chakki.find({
+    operatingStatus: 'Active',
     isArchived: { $ne: true }
-  };
-  if (cleanCity) {
-    zoneQuery.city = new RegExp(`^${cleanCity}$`, 'i');
+  }).sort({ priority: 1, name: 1 });
+
+  let matchedChakki = null;
+  for (const chakki of activeChakkis) {
+    if (chakki.pincodeConfigs && chakki.pincodeConfigs.length > 0) {
+      const cfg = chakki.pincodeConfigs.find(c => c.pincode === cleanPincode);
+      if (cfg && cfg.isActive) {
+        matchedChakki = chakki;
+        break;
+      }
+    }
+    // Fallback: check serviceablePincodes array
+    if (!matchedChakki && Array.isArray(chakki.serviceablePincodes) && chakki.serviceablePincodes.includes(cleanPincode)) {
+      const cfg = chakki.pincodeConfigs?.find(c => c.pincode === cleanPincode);
+      if (!cfg || cfg.isActive !== false) {
+        matchedChakki = chakki;
+        break;
+      }
+    }
   }
 
-  let activeZone = await DeliveryZone.findOne(zoneQuery);
-
-  // If not found with city filter, try finding by PIN code across all active zones
-  if (!activeZone && cleanCity) {
-    activeZone = await DeliveryZone.findOne({
+  // 2. Also check DeliveryZone and City if no active chakki matched
+  let activeZone = null;
+  if (!matchedChakki) {
+    const zoneQuery = {
       pincodes: cleanPincode,
       isActive: true,
       isArchived: { $ne: true }
-    });
-  }
-
-  if (!activeZone) {
-    return {
-      serviceable: false,
-      isServiceable: false,
-      message: `Delivery is not currently available for PIN code ${cleanPincode}.`,
-      chakkis: []
     };
+    if (cleanCity) {
+      zoneQuery.city = new RegExp(`^${cleanCity}$`, 'i');
+    }
+    activeZone = await DeliveryZone.findOne(zoneQuery);
+
+    if (!activeZone && cleanCity) {
+      activeZone = await DeliveryZone.findOne({
+        pincodes: cleanPincode,
+        isActive: true,
+        isArchived: { $ne: true }
+      });
+    }
+
+    if (activeZone) {
+      const cityDoc = await City.findOne({
+        name: new RegExp(`^${activeZone.city}$`, 'i'),
+        isArchived: { $ne: true }
+      });
+      if (cityDoc && !cityDoc.isActive) {
+        activeZone = null;
+      }
+    }
   }
 
-  // 2. Check City status for this zone
-  const cityDoc = await City.findOne({
-    name: new RegExp(`^${activeZone.city}$`, 'i'),
-    isArchived: { $ne: true }
-  });
+  const isServiceable = Boolean(matchedChakki || activeZone);
 
-  if (cityDoc && !cityDoc.isActive) {
+  if (isServiceable) {
     return {
-      serviceable: false,
-      isServiceable: false,
-      message: `Delivery service in ${activeZone.city} is temporarily unavailable.`,
-      chakkis: []
+      serviceable: true,
+      isServiceable: true,
+      message: 'Great news! We deliver to your location. You can continue with your order.',
+      city: matchedChakki ? matchedChakki.city : (activeZone?.city || cleanCity || 'Kanpur'),
+      zone: matchedChakki ? { name: matchedChakki.zone || 'Local Zone', city: matchedChakki.city } : (activeZone || null),
+      matchedChakki: matchedChakki ? { id: matchedChakki._id, name: matchedChakki.name, city: matchedChakki.city } : null,
+      chakkis: matchedChakki ? [matchedChakki] : []
     };
   }
 
   return {
-    serviceable: true,
-    isServiceable: true,
-    message: `Delivery available in ${activeZone.name}, ${activeZone.city} (${cleanPincode}).`,
-    city: activeZone.city,
-    zone: {
-      _id: activeZone._id,
-      zoneId: activeZone.zoneId,
-      name: activeZone.name,
-      city: activeZone.city,
-      pincodes: activeZone.pincodes
-    },
+    serviceable: false,
+    isServiceable: false,
+    message: 'Sorry! We’re not accepting orders in your PIN code yet. We’re working to expand our delivery network and hope to serve your location soon.',
     chakkis: []
   };
 }
@@ -113,9 +130,10 @@ router.post('/check-serviceability', async (req, res) => {
 // GET /api/delivery-areas (Public / Admin read)
 router.get('/', async (req, res) => {
   try {
-    const [cities, zones] = await Promise.all([
+    const [cities, zones, chakkis] = await Promise.all([
       City.find({ isArchived: { $ne: true } }).sort({ displayOrder: 1, name: 1 }),
-      DeliveryZone.find({ isArchived: { $ne: true } }).sort({ city: 1, name: 1 })
+      DeliveryZone.find({ isArchived: { $ne: true } }).sort({ city: 1, name: 1 }),
+      Chakki.find({ isArchived: { $ne: true } }).sort({ priority: 1, name: 1 })
     ]);
 
     res.json({
@@ -123,7 +141,7 @@ router.get('/', async (req, res) => {
       data: {
         cities,
         zones,
-        chakkis: [] // Safe empty array for backwards compatibility
+        chakkis
       }
     });
   } catch (err) {
@@ -370,6 +388,131 @@ router.delete('/chakkis/:id', protect, adminOnly, async (req, res) => {
       { new: true }
     );
     res.json({ success: true, message: `Chakki "${chakki?.name}" archived successfully` });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ==========================================
+// ADMIN CONFIGURATION: CHAKKI PIN-CODE MANAGEMENT
+// ==========================================
+
+// POST /api/delivery-areas/chakkis/:id/pincodes (Add PIN code to Chakki)
+router.post('/chakkis/:id/pincodes', protect, adminOnly, async (req, res) => {
+  try {
+    const { pincode, notes } = req.body;
+    const cleanPin = String(pincode || '').trim();
+    if (!/^\d{6}$/.test(cleanPin)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid 6-digit Indian PIN code (e.g. 208016).' });
+    }
+
+    const chakki = await Chakki.findById(req.params.id);
+    if (!chakki) {
+      return res.status(404).json({ success: false, message: 'Chakki unit not found.' });
+    }
+
+    if (!chakki.pincodeConfigs) {
+      chakki.pincodeConfigs = [];
+    }
+
+    const existingConfigIndex = chakki.pincodeConfigs.findIndex(c => c.pincode === cleanPin);
+    if (existingConfigIndex >= 0) {
+      if (chakki.pincodeConfigs[existingConfigIndex].isActive) {
+        return res.status(400).json({ success: false, message: `PIN code ${cleanPin} is already active for this chakki unit.` });
+      }
+      // Re-enable inactive config
+      chakki.pincodeConfigs[existingConfigIndex].isActive = true;
+      if (notes) chakki.pincodeConfigs[existingConfigIndex].notes = notes;
+    } else {
+      chakki.pincodeConfigs.push({
+        pincode: cleanPin,
+        isActive: true,
+        addedAt: new Date(),
+        notes: notes || ''
+      });
+    }
+
+    // Keep serviceablePincodes in sync
+    if (!chakki.serviceablePincodes.includes(cleanPin)) {
+      chakki.serviceablePincodes.push(cleanPin);
+    }
+
+    await chakki.save();
+    res.json({ 
+      success: true, 
+      message: `PIN code ${cleanPin} added to "${chakki.name}".`, 
+      data: chakki 
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// PATCH /api/delivery-areas/chakkis/:id/pincodes/:pincode/toggle (Toggle PIN code active/disabled)
+router.patch('/chakkis/:id/pincodes/:pincode/toggle', protect, adminOnly, async (req, res) => {
+  try {
+    const cleanPin = String(req.params.pincode || '').trim();
+    const chakki = await Chakki.findById(req.params.id);
+    if (!chakki) {
+      return res.status(404).json({ success: false, message: 'Chakki unit not found.' });
+    }
+
+    if (!chakki.pincodeConfigs) {
+      chakki.pincodeConfigs = [];
+    }
+
+    let config = chakki.pincodeConfigs.find(c => c.pincode === cleanPin);
+    if (!config) {
+      // If found in legacy serviceablePincodes, initialize it
+      const wasInLegacy = Array.isArray(chakki.serviceablePincodes) && chakki.serviceablePincodes.includes(cleanPin);
+      config = {
+        pincode: cleanPin,
+        isActive: !wasInLegacy,
+        addedAt: new Date(),
+        notes: ''
+      };
+      chakki.pincodeConfigs.push(config);
+    } else {
+      config.isActive = !config.isActive;
+    }
+
+    // If disabled, remove from serviceablePincodes; if enabled, ensure present
+    if (!config.isActive) {
+      chakki.serviceablePincodes = (chakki.serviceablePincodes || []).filter(p => p !== cleanPin);
+    } else if (!chakki.serviceablePincodes.includes(cleanPin)) {
+      chakki.serviceablePincodes.push(cleanPin);
+    }
+
+    await chakki.save();
+    res.json({ 
+      success: true, 
+      message: `PIN code ${cleanPin} is now ${config.isActive ? 'Active' : 'Disabled'}.`,
+      data: chakki 
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/delivery-areas/chakkis/:id/pincodes/:pincode (Remove PIN code from Chakki)
+// Removes from future assignment; historical orders, invoices, and customer addresses remain fully preserved
+router.delete('/chakkis/:id/pincodes/:pincode', protect, adminOnly, async (req, res) => {
+  try {
+    const cleanPin = String(req.params.pincode || '').trim();
+    const chakki = await Chakki.findById(req.params.id);
+    if (!chakki) {
+      return res.status(404).json({ success: false, message: 'Chakki unit not found.' });
+    }
+
+    chakki.pincodeConfigs = (chakki.pincodeConfigs || []).filter(c => c.pincode !== cleanPin);
+    chakki.serviceablePincodes = (chakki.serviceablePincodes || []).filter(p => p !== cleanPin);
+
+    await chakki.save();
+    res.json({ 
+      success: true, 
+      message: `PIN code ${cleanPin} removed from "${chakki.name}". Historical orders remain preserved.`, 
+      data: chakki 
+    });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }

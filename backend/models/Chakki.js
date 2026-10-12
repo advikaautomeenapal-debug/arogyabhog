@@ -30,6 +30,12 @@ const chakkiSchema = new mongoose.Schema({
     type: [String], 
     default: [] // Stored as strings e.g. ['208016', '209202']
   },
+  pincodeConfigs: [{
+    pincode: { type: String, required: true, trim: true },
+    isActive: { type: Boolean, default: true },
+    addedAt: { type: Date, default: Date.now },
+    notes: { type: String, default: '' }
+  }],
   priority: { 
     type: Number, 
     default: 1 // Lower integer = higher assignment priority
