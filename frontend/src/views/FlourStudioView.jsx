@@ -28,6 +28,7 @@ import {
 import { calculateProductNutrition, NUTRIENT_DEFINITIONS, formatNutrientValue } from '../utils/nutritionCalculator';
 import { resolveGrainDoc, canonicalGrainName, normalizeIngredientsMap } from '../utils/grainResolver';
 import { getProductSlug, PRODUCT_SEO_CATALOG, SEO_ARTICLES, SEO_FAQS } from '../utils/productSeoData';
+import { getVariantTheme } from '../utils/variantThemes';
 
 export function FlourStudioView({ 
   products, 
@@ -522,209 +523,332 @@ export function FlourStudioView({
                 );
                 const inCartQty = cartItem ? (cartItem.quantity || 1) : 0;
 
-                const badgeColorClass = 
-                  product.badgeType === 'blue' ? 'border-sky-500/40 text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/20' :
-                  product.badgeType === 'green' ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' :
-                  product.badgeType === 'purple' ? 'border-purple-500/40 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/20' :
-                  product.badgeType === 'rose' ? 'border-rose-500/40 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/20' :
-                  'border-[#C9A227]/60 text-[#C9A227] bg-amber-50/60 dark:bg-[#C9A227]/10';
+                const slug = getProductSlug(product);
+                const seoProduct = PRODUCT_SEO_CATALOG[slug];
+                const theme = getVariantTheme(slug);
 
-                const mrpPerKg = product.mrpPrice && product.mrpPrice > product.sellingPrice ? product.mrpPrice : Math.round(product.sellingPrice * 1.15);
+                // Dynamically source authentic recipe ingredients
+                const recipeGrains = (product.grains && product.grains.length > 0)
+                  ? product.grains
+                  : (seoProduct?.ingredients || []);
+
+                const mrpPerKg = product.mrpPrice && product.mrpPrice > product.sellingPrice 
+                  ? product.mrpPrice 
+                  : Math.round(product.sellingPrice * 1.15);
                 const mrpPackPrice = Math.round(mrpPerKg * currentPack);
-                const discountPercent = mrpPackPrice > packPrice ? Math.round(((mrpPackPrice - packPrice) / mrpPackPrice) * 100) : 0;
-                const seoProduct = PRODUCT_SEO_CATALOG[getProductSlug(product)];
-                const productImg = product.imageUrl || product.image || seoProduct?.imageUrl || '/arogyaBhog_logo.png';
+                const discountPercent = mrpPackPrice > packPrice 
+                  ? Math.round(((mrpPackPrice - packPrice) / mrpPackPrice) * 100) 
+                  : 0;
 
                 return (
                   <div
                     key={product._id}
-                    className="p-3.5 sm:p-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227] hover:shadow-md transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 relative group"
+                    className={`relative overflow-hidden rounded-2xl border ${theme.cardBorder} bg-white dark:bg-[#181818] shadow-sm hover:shadow-xl transition-all duration-300 group`}
                   >
-                    {/* Product Content (Clean Flipkart UI, No Photo on Cards per User Request) */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`inline-flex items-center text-[9px] sm:text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border ${badgeColorClass}`}>
-                          {product.badge}
-                        </span>
-                        <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                          Arogya Assured ✓
-                        </span>
-                      </div>
-
-                      <h3 
-                        onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
-                        className="font-bold text-sm sm:text-base text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-snug cursor-pointer line-clamp-1"
-                        title={product.name}
-                      >
-                        {product.name}
-                      </h3>
-
-                      {/* Brief 1-liner highlight */}
-                      <p className="text-[11px] sm:text-xs text-gray-500 dark:text-[#99907C] line-clamp-1">
-                        {product.tagline || '100% Traditional Slow Stone Cold-Ground Multigrain Flour'}
-                      </p>
-
-                      {/* Flipkart Pricing Row */}
-                      <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
-                        <span className="font-sans font-black text-base sm:text-lg text-gray-900 dark:text-white">
-                          ₹{packPrice}
-                        </span>
-                        {mrpPackPrice > packPrice && (
-                          <span className="text-xs text-gray-400 dark:text-[#888] line-through font-medium">
-                            ₹{mrpPackPrice}
-                          </span>
-                        )}
-                        {discountPercent > 0 && (
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            {discountPercent}% off
-                          </span>
-                        )}
-                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.2 rounded">
-                          Free Delivery
-                        </span>
-                      </div>
-
-                      {/* Pack Size Selector Chips */}
-                      <div className="flex items-center gap-2 pt-0.5">
-                        <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 dark:text-[#8B826F] uppercase tracking-wider">
-                          Pack:
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleSelectPackSize(product._id, 5)}
-                            className={`px-2.5 py-0.5 text-xs font-bold rounded-lg border transition-all ${
-                              currentPack === 5
-                                ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227] shadow-xs'
-                                : 'border-gray-200 dark:border-[#2E2A20] text-gray-600 dark:text-[#AAA] hover:border-gray-400'
-                            }`}
-                          >
-                            5 kg
-                          </button>
-                          <button
-                            onClick={() => handleSelectPackSize(product._id, 10)}
-                            className={`px-2.5 py-0.5 text-xs font-bold rounded-lg border transition-all ${
-                              currentPack === 10
-                                ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227] shadow-xs'
-                                : 'border-gray-200 dark:border-[#2E2A20] text-gray-600 dark:text-[#AAA] hover:border-gray-400'
-                            }`}
-                          >
-                            10 kg
-                          </button>
-                        </div>
-                      </div>
+                    {/* Realistic Ingredient-Inspired Background with Atmospheric Dusting & Scrim */}
+                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                      <img
+                        src={theme.bgImage}
+                        alt={product.name}
+                        className="w-full h-full object-cover object-right md:object-center opacity-30 dark:opacity-20 transition-transform duration-700 group-hover:scale-105"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        loading="lazy"
+                      />
+                      {/* High-contrast multi-stop scrim ensuring 100% text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/75 dark:from-[#181818]/95 dark:via-[#181818]/90 dark:to-[#181818]/75" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-white/40 dark:from-[#181818]/90 dark:via-transparent dark:to-[#181818]/40" />
                     </div>
 
-                    {/* Right Side: Flipkart Quick Actions */}
-                    <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-[#2E2A20]">
-                      <button
-                        onClick={() => handleAddProductToCart(product)}
-                        disabled={isAdding}
-                        className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm active:scale-[0.98] cursor-pointer min-w-[125px] ${
-                          inCartQty > 0
-                            ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600'
-                            : 'bg-[#C9A227] hover:bg-[#B58F1E] text-white'
-                        }`}
-                      >
-                        {inCartQty > 0 ? (
-                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                        ) : (
-                          <ShoppingCart className="w-3.5 h-3.5" />
-                        )}
-                        <span>
-                          {isAdding
-                            ? 'Adding...'
-                            : inCartQty > 0
-                              ? inCartQty === 1
-                                ? 'Added ✓'
-                                : `Added ✓ (${inCartQty})`
-                              : `Add to Cart`}
-                        </span>
-                      </button>
+                    {/* Interactive Content Container */}
+                    <div className="relative z-10 p-3.5 sm:p-5 flex flex-col justify-between space-y-3.5">
+                      
+                      {/* Top Section: Info, Pricing & Quick Actions */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+                        
+                        {/* Left: Product Information */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`inline-flex items-center text-[9px] sm:text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border ${theme.badgeClass}`}>
+                              {product.badge || theme.badge}
+                            </span>
+                            <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                              Arogya Assured ✓
+                            </span>
+                          </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
-                          className="py-1 px-2.5 rounded-lg border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] text-gray-600 dark:text-[#AAA] hover:text-[#C9A227] font-semibold text-[11px] flex items-center space-x-1 transition-all"
-                          title="View Recipe & Nutrition"
-                        >
-                          <Info className="w-3 h-3" />
-                          <span>Details</span>
-                        </button>
+                          <h3 
+                            onClick={() => onOpenProductDetail && onOpenProductDetail(slug)}
+                            className="font-bold text-base sm:text-lg text-gray-950 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-snug cursor-pointer line-clamp-1"
+                            title={product.name}
+                          >
+                            {product.name}
+                          </h3>
 
-                        <button
-                          type="button"
-                          onClick={() => handleCustomizePrebuilt(product)}
-                          className="py-1 px-2.5 rounded-lg border border-[#C9A227]/40 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-semibold text-[11px] flex items-center space-x-1 transition-all hidden sm:inline-flex"
-                          title="Customize in blender"
-                        >
-                          <Sliders className="w-3 h-3" />
-                          <span>Customize</span>
-                        </button>
+                          {/* Short Purpose / Positioning Line (Mobile & Desktop priority) */}
+                          <p className="text-xs sm:text-sm text-gray-700 dark:text-[#C5BAA5] font-medium line-clamp-1">
+                            {theme.positioning}
+                          </p>
+
+                          {/* Flipkart Pricing Row */}
+                          <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
+                            <span className="font-sans font-black text-lg sm:text-xl text-gray-950 dark:text-white">
+                              ₹{packPrice}
+                            </span>
+                            {mrpPackPrice > packPrice && (
+                              <span className="text-xs text-gray-400 dark:text-[#888] line-through font-medium">
+                                ₹{mrpPackPrice}
+                              </span>
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                {discountPercent}% off
+                              </span>
+                            )}
+                            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-300/60 dark:border-emerald-800/40">
+                              Free Delivery
+                            </span>
+                          </div>
+
+                          {/* Pack Size Selector Chips */}
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className="text-[10px] sm:text-[11px] font-bold text-gray-600 dark:text-[#A09885] uppercase tracking-wider">
+                              Pack:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleSelectPackSize(product._id, 5)}
+                                className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                                  currentPack === 5
+                                    ? 'border-[#C9A227] bg-[#C9A227]/20 text-[#C9A227] shadow-xs'
+                                    : 'border-gray-200 dark:border-[#2E2A20] text-gray-700 dark:text-[#BBB] hover:border-gray-400 bg-white/70 dark:bg-[#141414]/70'
+                                }`}
+                              >
+                                5 kg
+                              </button>
+                              <button
+                                onClick={() => handleSelectPackSize(product._id, 10)}
+                                className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                                  currentPack === 10
+                                    ? 'border-[#C9A227] bg-[#C9A227]/20 text-[#C9A227] shadow-xs'
+                                    : 'border-gray-200 dark:border-[#2E2A20] text-gray-700 dark:text-[#BBB] hover:border-gray-400 bg-white/70 dark:bg-[#141414]/70'
+                                }`}
+                              >
+                                10 kg
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Flipkart Quick Actions */}
+                        <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200/60 dark:border-[#2E2A20]">
+                          <button
+                            onClick={() => handleAddProductToCart(product)}
+                            disabled={isAdding}
+                            className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm active:scale-[0.98] cursor-pointer min-w-[130px] ${
+                              inCartQty > 0
+                                ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600'
+                                : 'bg-[#C9A227] hover:bg-[#B58F1E] text-white'
+                            }`}
+                          >
+                            {inCartQty > 0 ? (
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                            ) : (
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                            )}
+                            <span>
+                              {isAdding
+                                ? 'Adding...'
+                                : inCartQty > 0
+                                  ? inCartQty === 1
+                                    ? 'Added ✓'
+                                    : `Added ✓ (${inCartQty})`
+                                  : `Add to Cart`}
+                            </span>
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onOpenProductDetail && onOpenProductDetail(slug)}
+                              className="py-1 px-3 rounded-lg border border-gray-300 dark:border-[#2E2A20] hover:border-[#C9A227] text-gray-700 dark:text-[#BBB] hover:text-[#C9A227] font-semibold text-xs flex items-center space-x-1 transition-all bg-white/60 dark:bg-[#141414]/60"
+                              title="View Recipe & Nutrition"
+                            >
+                              <Info className="w-3 h-3" />
+                              <span>Details</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCustomizePrebuilt(product)}
+                              className="py-1 px-3 rounded-lg border border-[#C9A227]/50 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-semibold text-xs flex items-center space-x-1 transition-all hidden sm:inline-flex bg-amber-50/40 dark:bg-[#141414]/60"
+                              title="Customize in blender"
+                            >
+                              <Sliders className="w-3 h-3" />
+                              <span>Customize</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Desktop-Only: WHAT'S INSIDE Ingredient Table & Benefits (Hidden on Mobile) */}
+                      <div className={`hidden md:block pt-3 border-t border-gray-200/60 dark:border-[#2E2A20]/80 rounded-xl ${theme.tableBg} p-3.5 border`}>
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-200/50 dark:border-[#2E2A20]">
+                          <div className="flex items-center space-x-2">
+                            <Layers className="w-3.5 h-3.5 text-[#C9A227]" />
+                            <h4 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-[#FDFBF7]">
+                              What's Inside ({recipeGrains.length} Whole Ingredients)
+                            </h4>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-500 dark:text-[#A09885] tracking-wide">
+                            Stone Cold-Ground Recipe
+                          </span>
+                        </div>
+
+                        {/* Grid of Ingredients with Prominent Percentages */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                          {recipeGrains.map((grain, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/90 dark:bg-[#151515]/90 border border-gray-200/70 dark:border-[#2E2A20] shadow-2xs transition-colors ${theme.rowTint}`}
+                            >
+                              <span className="text-xs font-semibold text-gray-900 dark:text-[#E8DFC8] truncate pr-1" title={grain.name}>
+                                {grain.name}
+                              </span>
+                              <span className={`text-xs font-bold px-1.5 py-0.5 rounded border font-mono tracking-tight shrink-0 ${theme.pctBadge}`}>
+                                {grain.percentage}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Ingredient Benefit Highlights */}
+                        <div className="flex items-center gap-1.5 flex-wrap pt-2.5 mt-2.5 border-t border-gray-200/50 dark:border-[#2E2A20]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-[#A09885]">
+                            Nutritional Highlights:
+                          </span>
+                          {theme.benefits.map((benefit, bIdx) => (
+                            <span
+                              key={bIdx}
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${theme.benefitBadgeClass}`}
+                            >
+                              {benefit}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 );
               })}
 
               {/* PRODUCT 6: MY CHOICE ATTA (Bespoke Customer Blend strictly 10 kg) */}
-              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/10 via-[#C9A227]/5 to-transparent dark:bg-[#1c1a14] border-2 border-[#C9A227] rounded-2xl hover:shadow-md transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 relative group">
-                {/* Product Content (Clean Flipkart UI, No Photo on Cards per User Request) */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="inline-flex items-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
-                      CUSTOMER BESPOKE BLEND • 10 KG
-                    </span>
-                    <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                      Assured ✓
-                    </span>
-                  </div>
-
-                  <h3 
-                    onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
-                    className="font-bold text-sm sm:text-base text-gray-900 dark:text-[#FDFBF7] hover:text-[#C9A227] transition-colors leading-snug cursor-pointer line-clamp-1"
-                    title="View My Choice Atta Details"
-                  >
-                    My Choice Atta
-                  </h3>
-
-                  <p className="text-[11px] sm:text-xs text-gray-500 dark:text-[#99907C] line-clamp-1">
-                    Pick your exact grain ratios from 18 master whole grains & millets. Ground fresh upon order.
-                  </p>
-
-                  {/* Flipkart Pricing Row */}
-                  <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
-                    <span className="font-sans font-black text-base sm:text-lg text-[#C9A227]">
-                      ₹85/kg
-                    </span>
-                    <span className="text-xs font-bold text-gray-600 dark:text-[#AAA]">
-                      (Avg • 10 kg Batch)
-                    </span>
-                    <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.2 rounded">
-                      Free Delivery
-                    </span>
-                  </div>
+              <div className="relative overflow-hidden rounded-2xl border-2 border-[#C9A227] bg-white dark:bg-[#181818] shadow-sm hover:shadow-xl transition-all duration-300 group">
+                {/* Variant-Specific Realistic Studio Background */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                  <img
+                    src="/variants/my-choice-atta.jpg"
+                    alt="My Choice Atta"
+                    className="w-full h-full object-cover object-right md:object-center opacity-30 dark:opacity-20 transition-transform duration-700 group-hover:scale-105"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/15 via-white/90 to-white/75 dark:from-[#1c1a14]/95 dark:via-[#1c1a14]/90 dark:to-[#181818]/75" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-white/40 dark:from-[#181818]/90 dark:via-transparent dark:to-[#181818]/40" />
                 </div>
 
-                {/* Right: Action */}
-                <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-[#2E2A20]">
-                  <button
-                    onClick={() => setActiveTab('customBlender')}
-                    className="flex-1 sm:flex-initial py-2 px-4 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm min-w-[150px] cursor-pointer"
-                  >
-                    <Sliders className="w-3.5 h-3.5" />
-                    <span>Open Blender (10 kg)</span>
-                  </button>
+                <div className="relative z-10 p-3.5 sm:p-5 flex flex-col justify-between space-y-3.5">
+                  {/* Top Row: Info & Actions */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
+                          CUSTOMER BESPOKE BLEND • 10 KG
+                        </span>
+                        <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                          Assured ✓
+                        </span>
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
-                    className="py-1 px-2.5 rounded-lg border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] text-gray-600 dark:text-[#AAA] hover:text-[#C9A227] font-semibold text-[11px] flex items-center space-x-1 transition-all"
-                    title="View Details"
-                  >
-                    <Info className="w-3 h-3" />
-                    <span>Details</span>
-                  </button>
+                      <h3 
+                        onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
+                        className="font-bold text-base sm:text-lg text-gray-950 dark:text-[#FDFBF7] hover:text-[#C9A227] transition-colors leading-snug cursor-pointer line-clamp-1"
+                        title="View My Choice Atta Details"
+                      >
+                        My Choice Atta
+                      </h3>
+
+                      {/* Short Positioning 1-Liner */}
+                      <p className="text-xs sm:text-sm text-gray-700 dark:text-[#C5BAA5] font-medium line-clamp-1">
+                        Customize your blend to suit your preferences.
+                      </p>
+
+                      {/* Flipkart Pricing Row */}
+                      <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
+                        <span className="font-sans font-black text-lg sm:text-xl text-[#C9A227]">
+                          ₹85/kg
+                        </span>
+                        <span className="text-xs font-bold text-gray-600 dark:text-[#AAA]">
+                          (Avg • 10 kg Batch)
+                        </span>
+                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-300/60 dark:border-emerald-800/40">
+                          Free Delivery
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200/60 dark:border-[#2E2A20]">
+                      <button
+                        onClick={() => setActiveTab('customBlender')}
+                        className="flex-1 sm:flex-initial py-2.5 px-4 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm min-w-[150px] cursor-pointer"
+                      >
+                        <Sliders className="w-3.5 h-3.5" />
+                        <span>Open Blender (10 kg)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
+                        className="py-1 px-3 rounded-lg border border-gray-300 dark:border-[#2E2A20] hover:border-[#C9A227] text-gray-700 dark:text-[#BBB] hover:text-[#C9A227] font-semibold text-xs flex items-center space-x-1 transition-all bg-white/60 dark:bg-[#141414]/60"
+                        title="View Details"
+                      >
+                        <Info className="w-3 h-3" />
+                        <span>Details</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Desktop-Only: 18 Master Grains Studio Info & Highlights */}
+                  <div className="hidden md:block pt-3 border-t border-[#C9A227]/30 rounded-xl bg-amber-50/50 dark:bg-[#1a1710] p-3.5 border border-[#C9A227]/20">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#C9A227]/20">
+                      <div className="flex items-center space-x-2">
+                        <Layers className="w-3.5 h-3.5 text-[#C9A227]" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-[#FDFBF7]">
+                          What's Inside (18 Master Whole Grains & Seeds Studio)
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-semibold text-[#C9A227] tracking-wide">
+                        Bespoke Ratios
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-[#B8AF9C] leading-relaxed">
+                      Select your exact ratios in our live chakki blender: MP Sharbati Wheat, Roasted Chana, Barley (Jau), Amaranth (Rajgira), Ragi, Jowar, Bajra, Oats, Quinoa, Soybean, Chia, Flax, White Sesame, Methi Dana, Makka, and Water Chestnut (Singhada).
+                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap pt-2.5 mt-2.5 border-t border-[#C9A227]/20">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-[#A09885]">
+                        Nutritional Highlights:
+                      </span>
+                      {['18 Master Grains', '100% Custom Ratios', 'Fresh Stone Milled', 'Exact 10 kg Batch'].map((b, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-[#C9A227] dark:border-[#C9A227]/40"
+                        >
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 

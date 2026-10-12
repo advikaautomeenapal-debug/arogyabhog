@@ -102,17 +102,6 @@ export function Header({
             </a>
           )}
 
-          {!user && (
-            <a 
-              href={getPanelUrl('delivery')}
-              className="hidden lg:flex items-center space-x-1.5 text-xs text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-xl hover:bg-sky-500/10 transition-colors font-medium tracking-wider uppercase mr-2"
-              title="Delivery Fleet Dispatch Portal"
-            >
-              <Truck className="w-3.5 h-3.5" />
-              <span>Fleet Portal</span>
-            </a>
-          )}
-
           {/* THEME TOGGLE BUTTON (Sun/Moon) - Affects Body Surfaces Only */}
           <button
             onClick={onToggleTheme}

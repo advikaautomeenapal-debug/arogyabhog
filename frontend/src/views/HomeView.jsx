@@ -109,128 +109,176 @@ export function HomeView({ onExploreStudio, onSelectDoctorBlend }) {
           {/* Card 1 */}
           <div 
             onClick={() => onSelectDoctorBlend('Everyday Soft Multigrain Atta')}
-            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-[#d4af37] hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-[#d4af37] hover:shadow-md transition-all cursor-pointer group rounded-xl relative overflow-hidden"
           >
-            <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-[#d4af37]/60 text-[#f2ca50] bg-[#d4af37]/10 rounded">
-                SOFT & PUFFY ROTIS
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
-                Assured ✓
-              </span>
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              <img
+                src="/variants/everyday-soft-multigrain-atta.jpg"
+                alt="Everyday Soft Multigrain Atta"
+                className="w-full h-full object-cover object-right opacity-25 transition-transform duration-700 group-hover:scale-105"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/95 via-[#181818]/90 to-[#181818]/70" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-[#f2ca50] transition-colors leading-snug">
-              Everyday Soft Multigrain Atta
-            </h3>
-            <p className="text-[11px] text-[#99907c] line-clamp-1">
-              Sharbati wheat with roasted chana, barley, and whole millets.
-            </p>
-            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="font-sans font-black text-base text-[#fdfbf7]">₹68/kg</span>
-                <span className="text-[10px] text-gray-500 line-through">₹78</span>
-                <span className="text-[10px] font-bold text-emerald-400">12% off</span>
+            <div className="relative z-10 space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-[#d4af37]/60 text-[#f2ca50] bg-[#d4af37]/10 rounded">
+                  SOFT & PUFFY ROTIS
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                  Assured ✓
+                </span>
               </div>
-              <span className="text-xs text-[#f2ca50] uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
-                <span>Select</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
+              <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-[#f2ca50] transition-colors leading-snug">
+                Everyday Soft Multigrain Atta
+              </h3>
+              <p className="text-[11px] text-[#99907c] line-clamp-1">
+                Wholesome grains for everyday family meals.
+              </p>
+              <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+                <div className="flex items-baseline space-x-1.5">
+                  <span className="font-sans font-black text-base text-[#fdfbf7]">₹68/kg</span>
+                  <span className="text-[10px] text-gray-500 line-through">₹78</span>
+                  <span className="text-[10px] font-bold text-emerald-400">12% off</span>
+                </div>
+                <span className="text-xs text-[#f2ca50] uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                  <span>Select</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Card 2 */}
           <div 
             onClick={() => onSelectDoctorBlend('High-Protein & Fitness Flour')}
-            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-[#64b5f6] hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-[#64b5f6] hover:shadow-md transition-all cursor-pointer group rounded-xl relative overflow-hidden"
           >
-            <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-sky-500/50 text-sky-400 bg-sky-950/20 rounded">
-                22G PROTEIN / 100G
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
-                Assured ✓
-              </span>
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              <img
+                src="/variants/high-protein-atta.jpg"
+                alt="High Protein Atta"
+                className="w-full h-full object-cover object-right opacity-25 transition-transform duration-700 group-hover:scale-105"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/95 via-[#181818]/90 to-[#181818]/70" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-sky-400 transition-colors leading-snug">
-              High-Protein & Fitness Flour
-            </h3>
-            <p className="text-[11px] text-[#99907c] line-clamp-1">
-              Enriched with soybean, roasted chana, and barley for sustained fitness.
-            </p>
-            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="font-sans font-black text-base text-[#fdfbf7]">₹82/kg</span>
-                <span className="text-[10px] text-gray-500 line-through">₹95</span>
-                <span className="text-[10px] font-bold text-emerald-400">14% off</span>
+            <div className="relative z-10 space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-sky-500/50 text-sky-400 bg-sky-950/20 rounded">
+                  22G PROTEIN / 100G
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                  Assured ✓
+                </span>
               </div>
-              <span className="text-xs text-sky-400 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
-                <span>Select</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
+              <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-sky-400 transition-colors leading-snug">
+                High-Protein & Fitness Flour
+              </h3>
+              <p className="text-[11px] text-[#99907c] line-clamp-1">
+                A grain-and-seed blend for protein-conscious diets.
+              </p>
+              <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+                <div className="flex items-baseline space-x-1.5">
+                  <span className="font-sans font-black text-base text-[#fdfbf7]">₹82/kg</span>
+                  <span className="text-[10px] text-gray-500 line-through">₹95</span>
+                  <span className="text-[10px] font-bold text-emerald-400">14% off</span>
+                </div>
+                <span className="text-xs text-sky-400 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                  <span>Select</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Card 3 */}
           <div 
             onClick={() => onSelectDoctorBlend('Low-GI Diabetic Care Flour')}
-            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer group rounded-xl relative overflow-hidden"
           >
-            <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-emerald-500/50 text-emerald-400 bg-emerald-950/20 rounded">
-                LOW GLYCEMIC INDEX
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
-                Assured ✓
-              </span>
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              <img
+                src="/variants/sugar-care-atta.jpg"
+                alt="Sugar Care Atta"
+                className="w-full h-full object-cover object-right opacity-25 transition-transform duration-700 group-hover:scale-105"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/95 via-[#181818]/90 to-[#181818]/70" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-emerald-400 transition-colors leading-snug">
-              Low-GI Diabetic Care Flour
-            </h3>
-            <p className="text-[11px] text-[#99907c] line-clamp-1">
-              Barley, methi seed & high soluble fiber for steady glucose release.
-            </p>
-            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="font-sans font-black text-base text-[#fdfbf7]">₹78/kg</span>
-                <span className="text-[10px] text-gray-500 line-through">₹90</span>
-                <span className="text-[10px] font-bold text-emerald-400">13% off</span>
+            <div className="relative z-10 space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-emerald-500/50 text-emerald-400 bg-emerald-950/20 rounded">
+                  LOW GLYCEMIC INDEX
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                  Assured ✓
+                </span>
               </div>
-              <span className="text-xs text-emerald-400 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
-                <span>Select</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
+              <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-emerald-400 transition-colors leading-snug">
+                Low-GI Diabetic Care Flour
+              </h3>
+              <p className="text-[11px] text-[#99907c] line-clamp-1">
+                A multigrain blend for everyday mindful nutrition.
+              </p>
+              <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+                <div className="flex items-baseline space-x-1.5">
+                  <span className="font-sans font-black text-base text-[#fdfbf7]">₹78/kg</span>
+                  <span className="text-[10px] text-gray-500 line-through">₹90</span>
+                  <span className="text-[10px] font-bold text-emerald-400">13% off</span>
+                </div>
+                <span className="text-xs text-emerald-400 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                  <span>Select</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Card 4 */}
           <div 
             onClick={() => onSelectDoctorBlend('Calcium & Bone-Health Millet Blend')}
-            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-purple-500 hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-purple-500 hover:shadow-md transition-all cursor-pointer group rounded-xl relative overflow-hidden"
           >
-            <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-purple-500/50 text-purple-300 bg-purple-950/20 rounded">
-                HIGH CALCIUM & IRON
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
-                Assured ✓
-              </span>
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+              <img
+                src="/variants/thyro-care-atta.jpg"
+                alt="Calcium & Bone-Health / Thyro Care"
+                className="w-full h-full object-cover object-right opacity-25 transition-transform duration-700 group-hover:scale-105"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/95 via-[#181818]/90 to-[#181818]/70" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-purple-300 transition-colors leading-snug">
-              Calcium & Bone-Health Millet Blend
-            </h3>
-            <p className="text-[11px] text-[#99907c] line-clamp-1">
-              Ragi, bajra & jowar blend providing natural bioavailable minerals.
-            </p>
-            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="font-sans font-black text-base text-[#fdfbf7]">₹75/kg</span>
-                <span className="text-[10px] text-gray-500 line-through">₹88</span>
-                <span className="text-[10px] font-bold text-emerald-400">15% off</span>
+            <div className="relative z-10 space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-purple-500/50 text-purple-300 bg-purple-950/20 rounded">
+                  HIGH CALCIUM & IRON
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                  Assured ✓
+                </span>
               </div>
-              <span className="text-xs text-purple-300 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
-                <span>Select</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
+              <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-purple-300 transition-colors leading-snug">
+                Calcium & Bone-Health Millet Blend
+              </h3>
+              <p className="text-[11px] text-[#99907c] line-clamp-1">
+                A distinctive blend of grains, pulses, and seeds.
+              </p>
+              <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+                <div className="flex items-baseline space-x-1.5">
+                  <span className="font-sans font-black text-base text-[#fdfbf7]">₹75/kg</span>
+                  <span className="text-[10px] text-gray-500 line-through">₹88</span>
+                  <span className="text-[10px] font-bold text-emerald-400">15% off</span>
+                </div>
+                <span className="text-xs text-purple-300 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                  <span>Select</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
           </div>
 

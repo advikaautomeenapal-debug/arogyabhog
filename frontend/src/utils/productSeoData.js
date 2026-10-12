@@ -18,7 +18,7 @@ export const PRODUCT_SEO_CATALOG = {
     sellingPrice: 68,
     mrpPrice: 78,
     availablePackSizes: [5, 10],
-    imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/variants/everyday-soft-multigrain-atta.jpg',
     imageAlt: 'Arogya Bhog Everyday Soft Multigrain Atta stone milled flour and soft rotis',
     ingredients: [
       { name: 'Sharbati Wheat', percentage: 75, role: 'Base grain for naturally sweet taste, elastic dough, and soft puffy rotis' },
@@ -59,7 +59,7 @@ export const PRODUCT_SEO_CATALOG = {
     sellingPrice: 78,
     mrpPrice: 88,
     availablePackSizes: [5, 10],
-    imageUrl: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/variants/sugar-care-atta.jpg',
     imageAlt: 'Arogya Bhog Sugar Care Atta low glycemic index multigrain flour',
     ingredients: [
       { name: 'Sharbati Wheat', percentage: 50, role: 'Balanced whole wheat base for natural dough binding' },
@@ -100,7 +100,7 @@ export const PRODUCT_SEO_CATALOG = {
     sellingPrice: 135,
     mrpPrice: 155,
     availablePackSizes: [5, 10],
-    imageUrl: 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/variants/thyro-care-atta.jpg',
     imageAlt: 'Arogya Bhog Thyro Care Atta mineral-rich amaranth and millet flour',
     ingredients: [
       { name: 'Amaranth (Rajgira)', percentage: 40, role: 'Naturally gluten-free supergrain rich in squalene, protein, and iron' },
@@ -139,7 +139,7 @@ export const PRODUCT_SEO_CATALOG = {
     sellingPrice: 78,
     mrpPrice: 88,
     availablePackSizes: [5, 10],
-    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/variants/high-protein-atta.jpg',
     imageAlt: 'Arogya Bhog High Protein Atta plant protein multigrain flour',
     ingredients: [
       { name: 'Sharbati Wheat', percentage: 60, role: 'Wholesome wheat base for traditional roti stretch and texture' },
@@ -178,7 +178,7 @@ export const PRODUCT_SEO_CATALOG = {
     sellingPrice: 88,
     mrpPrice: 98,
     availablePackSizes: [5, 10],
-    imageUrl: 'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/variants/vitality-atta.jpg',
     imageAlt: 'Arogya Bhog Vitality Atta multi-seed artisanal stone milled flour',
     ingredients: [
       { name: 'Sharbati Wheat', percentage: 50, role: 'Base wheat germ flour for natural softness' },
@@ -221,7 +221,7 @@ export const PRODUCT_SEO_CATALOG = {
     sellingPrice: 85,
     mrpPrice: 95,
     availablePackSizes: [10],
-    imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '/variants/my-choice-atta.jpg',
     imageAlt: 'Arogya Bhog My Choice Atta custom blend flour laboratory',
     ingredients: [
       { name: '18 Master Whole Grains & Seeds', percentage: 100, role: 'Fully customizable by customer to equal exactly 10.00 kg' }
