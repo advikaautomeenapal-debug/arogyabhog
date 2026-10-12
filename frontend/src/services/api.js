@@ -314,6 +314,33 @@ export const api = {
     }
   },
 
+  async updateProductPhoto(id, fileOrUrl) {
+    try {
+      const isFile = fileOrUrl instanceof File || fileOrUrl instanceof Blob;
+      let res;
+      if (isFile) {
+        const formData = new FormData();
+        formData.append('photo', fileOrUrl);
+        formData.append('image', fileOrUrl);
+        res = await fetch(`${API_BASE}/products/${id}/photo`, {
+          method: 'POST',
+          headers: getAuthHeaders(true),
+          body: formData
+        });
+      } else {
+        res = await fetch(`${API_BASE}/products/${id}/photo`, {
+          method: 'POST',
+          headers: getAuthHeaders(false),
+          body: JSON.stringify({ imageUrl: typeof fileOrUrl === 'string' ? fileOrUrl : '' })
+        });
+      }
+      return await res.json();
+    } catch (err) {
+      console.error('API Error (updateProductPhoto):', err);
+      return { success: false, message: err.message };
+    }
+  },
+
   async deleteProduct(id, permanent = false) {
     try {
       const url = permanent ? `${API_BASE}/products/${id}?permanent=true` : `${API_BASE}/products/${id}`;

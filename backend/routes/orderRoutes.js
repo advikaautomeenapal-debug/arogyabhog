@@ -11,6 +11,7 @@ const { protect, adminOnly, deliveryOrAdmin, optionalAuth } = require('../middle
 const { evaluateServiceability } = require('./deliveryAreaRoutes');
 const { resolveGrainDoc } = require('../utils/grainResolver');
 const { normalizePhone } = require('../utils/phoneHelper');
+const { sendOrderNotificationEmail } = require('../utils/emailNotifier');
 
 // Calculate 16 nutrients for an item's confirmed grain breakdown
 const calculateItemNutritionSnapshot = (grainBreakdown, batchSizeKg, quantity, grainMap, allGrains) => {
@@ -991,6 +992,11 @@ router.post('/', async (req, res) => {
       }
 
       savedOrder = await newOrder.save();
+
+      // Trigger automated email notification to arogyabhog@gmail.com
+      sendOrderNotificationEmail(savedOrder).catch(mailErr => {
+        console.error('[Email Notification Error]:', mailErr.message);
+      });
 
       // Record coupon redemption if a coupon was applied
       if (couponDoc && verifiedDiscount > 0) {

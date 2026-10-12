@@ -294,6 +294,60 @@ router.put('/:id', protect, adminOnly, upload.single('image'), async (req, res) 
   }
 });
 
+// Configure photo upload handler supporting 'photo' or 'image' field
+const photoUpload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+}).fields([{ name: 'photo', maxCount: 1 }, { name: 'image', maxCount: 1 }]);
+
+const handleProductPhotoUpdate = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    const uploadedFile = (req.files && (req.files['photo']?.[0] || req.files['image']?.[0])) || req.file;
+    let newImageUrl = '';
+
+    if (uploadedFile) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      newImageUrl = `${baseUrl}/uploads/${uploadedFile.filename}`;
+    } else if (req.body.imageUrl && typeof req.body.imageUrl === 'string') {
+      newImageUrl = req.body.imageUrl.trim();
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide an image file (PNG/JPG/WEBP) or enter an image URL' 
+      });
+    }
+
+    product.imageUrl = newImageUrl;
+    await product.save();
+
+    res.json({
+      success: true,
+      message: `Product photo updated successfully for "${product.name}"!`,
+      data: product
+    });
+  } catch (error) {
+    console.error('Error updating product photo:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST / PATCH / PUT /api/products/:id/photo (Dedicated product photo updater)
+router.post('/:id/photo', protect, adminOnly, photoUpload, handleProductPhotoUpdate);
+router.patch('/:id/photo', protect, adminOnly, photoUpload, handleProductPhotoUpdate);
+router.put('/:id/photo', protect, adminOnly, photoUpload, handleProductPhotoUpdate);
+
 // PATCH /api/products/:id/toggle (Toggle active status)
 router.patch('/:id/toggle', protect, adminOnly, async (req, res) => {
   try {

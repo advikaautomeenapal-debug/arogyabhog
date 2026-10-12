@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { calculateProductNutrition, NUTRIENT_DEFINITIONS, formatNutrientValue } from '../utils/nutritionCalculator';
 import { resolveGrainDoc, canonicalGrainName, normalizeIngredientsMap } from '../utils/grainResolver';
-import { getProductSlug, SEO_ARTICLES, SEO_FAQS } from '../utils/productSeoData';
+import { getProductSlug, PRODUCT_SEO_CATALOG, SEO_ARTICLES, SEO_FAQS } from '../utils/productSeoData';
 
 export function FlourStudioView({ 
   products, 
@@ -182,9 +182,11 @@ export function FlourStudioView({
     const startTime = productInteractionTimes[product._id] || now;
     const durationSeconds = Math.max(1, Math.round((now - startTime) / 1000));
 
+    const seoItem = PRODUCT_SEO_CATALOG[getProductSlug(product)];
     const cartItem = {
       productId: product._id,
       name: product.name,
+      image: product.imageUrl || product.image || seoItem?.imageUrl || '/arogyaBhog_logo.png',
       isCustom: false,
       batchSizeKg: selectedSize,
       fineness: 'Medium (Phulka)',
@@ -527,200 +529,137 @@ export function FlourStudioView({
                   product.badgeType === 'rose' ? 'border-rose-500/40 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/20' :
                   'border-[#C9A227]/60 text-[#C9A227] bg-amber-50/60 dark:bg-[#C9A227]/10';
 
+                const mrpPerKg = product.mrpPrice && product.mrpPrice > product.sellingPrice ? product.mrpPrice : Math.round(product.sellingPrice * 1.15);
+                const mrpPackPrice = Math.round(mrpPerKg * currentPack);
+                const discountPercent = mrpPackPrice > packPrice ? Math.round(((mrpPackPrice - packPrice) / mrpPackPrice) * 100) : 0;
+                const seoProduct = PRODUCT_SEO_CATALOG[getProductSlug(product)];
+                const productImg = product.imageUrl || product.image || seoProduct?.imageUrl || '/arogyaBhog_logo.png';
+
                 return (
                   <div
                     key={product._id}
-                    className="p-4 sm:p-5 bg-white dark:bg-[#181818] border-2 border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227] transition-all space-y-3 sm:space-y-3.5 relative shadow-sm group"
+                    className="p-3.5 sm:p-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] rounded-2xl hover:border-[#C9A227] hover:shadow-md transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 relative group"
                   >
-                    {/* Header Row: Product Title & Pack Price with Clear Headings */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        <span className={`inline-flex items-center text-[10px] sm:text-xs font-black tracking-caps uppercase px-2.5 py-1 rounded-lg border ${badgeColorClass}`}>
+                    {/* Product Content (Clean Flipkart UI, No Photo on Cards per User Request) */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center text-[9px] sm:text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border ${badgeColorClass}`}>
                           {product.badge}
                         </span>
-                        <h3 
-                          onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
-                          className="font-editorial text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-tight cursor-pointer"
-                          title={`View ${product.name} recipe and nutrition details`}
-                        >
-                          {product.name}
-                        </h3>
-                        {product.tagline && (
-                          <div className="pt-0.5">
-                            <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-[#C9A227] block">
-                              Primary Health Benefit:
-                            </span>
-                            <p className="font-sans text-xs sm:text-sm font-bold text-gray-800 dark:text-[#EDE8DF] leading-snug">
-                              {product.tagline}
-                            </p>
-                          </div>
-                        )}
+                        <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                          Arogya Assured ✓
+                        </span>
                       </div>
 
-                      <div className="text-right flex-shrink-0 pl-2">
-                        <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-gray-500 dark:text-[#99907C] block">
-                          Pack Price:
+                      <h3 
+                        onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
+                        className="font-bold text-sm sm:text-base text-gray-900 dark:text-[#FDFBF7] group-hover:text-[#C9A227] transition-colors leading-snug cursor-pointer line-clamp-1"
+                        title={product.name}
+                      >
+                        {product.name}
+                      </h3>
+
+                      {/* Brief 1-liner highlight */}
+                      <p className="text-[11px] sm:text-xs text-gray-500 dark:text-[#99907C] line-clamp-1">
+                        {product.tagline || '100% Traditional Slow Stone Cold-Ground Multigrain Flour'}
+                      </p>
+
+                      {/* Flipkart Pricing Row */}
+                      <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
+                        <span className="font-sans font-black text-base sm:text-lg text-gray-900 dark:text-white">
+                          ₹{packPrice}
                         </span>
-                        {product.mrpPrice > product.sellingPrice && (
-                          <span className="text-xs text-gray-400 dark:text-[#99907C] line-through block font-semibold">
-                            ₹{Math.round(product.mrpPrice * currentPack)}
+                        {mrpPackPrice > packPrice && (
+                          <span className="text-xs text-gray-400 dark:text-[#888] line-through font-medium">
+                            ₹{mrpPackPrice}
                           </span>
                         )}
-                        <div className="flex items-baseline justify-end space-x-1">
-                          <span className="font-sans font-black text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-[#FDFBF7]">
-                            ₹{packPrice}
+                        {discountPercent > 0 && (
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            {discountPercent}% off
                           </span>
-                          <span className="text-xs sm:text-sm font-black text-[#C9A227]">
-                            ({currentPack} kg)
-                          </span>
+                        )}
+                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.2 rounded">
+                          Free Delivery
+                        </span>
+                      </div>
+
+                      {/* Pack Size Selector Chips */}
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 dark:text-[#8B826F] uppercase tracking-wider">
+                          Pack:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleSelectPackSize(product._id, 5)}
+                            className={`px-2.5 py-0.5 text-xs font-bold rounded-lg border transition-all ${
+                              currentPack === 5
+                                ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227] shadow-xs'
+                                : 'border-gray-200 dark:border-[#2E2A20] text-gray-600 dark:text-[#AAA] hover:border-gray-400'
+                            }`}
+                          >
+                            5 kg
+                          </button>
+                          <button
+                            onClick={() => handleSelectPackSize(product._id, 10)}
+                            className={`px-2.5 py-0.5 text-xs font-bold rounded-lg border transition-all ${
+                              currentPack === 10
+                                ? 'border-[#C9A227] bg-[#C9A227]/15 text-[#C9A227] shadow-xs'
+                                : 'border-gray-200 dark:border-[#2E2A20] text-gray-600 dark:text-[#AAA] hover:border-gray-400'
+                            }`}
+                          >
+                            10 kg
+                          </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Exact Grain Composition - Fully Visible with Clear Heading on All Devices */}
-                    <div className="space-y-1.5 pt-1 border-t border-gray-100 dark:border-[#2E2A20]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] sm:text-xs uppercase font-black tracking-wider text-gray-900 dark:text-[#FDFBF7] flex items-center gap-1.5">
-                          <span>Exact Grain Composition:</span>
+                    {/* Right Side: Flipkart Quick Actions */}
+                    <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-[#2E2A20]">
+                      <button
+                        onClick={() => handleAddProductToCart(product)}
+                        disabled={isAdding}
+                        className={`flex-1 sm:flex-initial py-2 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm active:scale-[0.98] cursor-pointer min-w-[125px] ${
+                          inCartQty > 0
+                            ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600'
+                            : 'bg-[#C9A227] hover:bg-[#B58F1E] text-white'
+                        }`}
+                      >
+                        {inCartQty > 0 ? (
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        ) : (
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                        )}
+                        <span>
+                          {isAdding
+                            ? 'Adding...'
+                            : inCartQty > 0
+                              ? inCartQty === 1
+                                ? 'Added ✓'
+                                : `Added ✓ (${inCartQty})`
+                              : `Add to Cart`}
                         </span>
-                        <span className="text-[10px] sm:text-xs text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-wide">
-                          ✓ Cold Stone Milled
-                        </span>
-                      </div>
+                      </button>
 
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {product.grains && product.grains.map((g, idx) => (
-                          <span
-                            key={idx}
-                            className="text-xs font-bold px-2.5 py-1 bg-gray-100 dark:bg-[#202020] border border-gray-300 dark:border-[#333027] rounded-lg text-gray-900 dark:text-[#FDFBF7] shadow-xs"
-                          >
-                            <span className="text-[#C9A227] font-black">{g.percentage}%</span> {g.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Pending Cost Notice (e.g. RM-018 Methi Seeds in Vitality Atta) */}
-                    {product.costBreakdown?.hasIncompleteCost && (
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-600/40 text-amber-900 dark:text-amber-300 text-xs flex items-center space-x-2 font-bold">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
-                        <span><strong>Rate Notice:</strong> {product.costBreakdown.incompleteCostReason || 'Ingredient rate awaiting admin quotation.'}</span>
-                      </div>
-                    )}
-
-                    {/* Recommended Dietary Target - Visible on All Screens with Clear Heading */}
-                    {product.target && (
-                      <div className="pt-1">
-                        <span className="text-[11px] sm:text-xs uppercase font-black tracking-wider text-gray-900 dark:text-[#FDFBF7] block">
-                          Recommended For / Dietary Goal:
-                        </span>
-                        <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-[#D0C5AF] border-l-2 border-[#C9A227] pl-2.5 py-1 mt-1 bg-amber-50/40 dark:bg-[#1E1B13] rounded-r-lg leading-snug">
-                          {product.target}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Action Bar: Size Switcher & High-Visibility Prominent Add to Cart Button */}
-                    <div className="pt-2 sm:pt-3 border-t border-gray-100 dark:border-[#2E2A20] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
-                      <div className="flex items-center justify-between sm:justify-start space-x-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs font-black text-gray-900 dark:text-[#FDFBF7] uppercase tracking-wider">
-                            Select Size:
-                          </span>
-                          <div className="flex border border-gray-300 dark:border-[#2E2A20] bg-gray-100 dark:bg-[#141414] rounded-xl p-0.5">
-                            <button
-                              onClick={() => handleSelectPackSize(product._id, 5)}
-                              className={`px-3 py-1 sm:py-1.5 text-xs font-black uppercase rounded-lg transition-all ${
-                                currentPack === 5
-                                  ? 'bg-[#C9A227] text-white shadow-sm'
-                                  : 'text-gray-700 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
-                              }`}
-                            >
-                              5 kg
-                            </button>
-                            <button
-                              onClick={() => handleSelectPackSize(product._id, 10)}
-                              className={`px-3 py-1 sm:py-1.5 text-xs font-black uppercase rounded-lg transition-all ${
-                                currentPack === 10
-                                  ? 'bg-[#C9A227] text-white shadow-sm'
-                                  : 'text-gray-700 dark:text-[#D0C5AF] hover:text-gray-900 dark:hover:text-[#FDFBF7]'
-                              }`}
-                            >
-                              10 kg
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Mobile-only secondary buttons: Details & Customize */}
-                        <div className="flex items-center space-x-1.5 sm:hidden">
-                          <button
-                            type="button"
-                            onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
-                            className="py-1 px-2 rounded-lg border border-gray-300 dark:border-[#3E3A2F] text-gray-700 dark:text-[#D0C5AF] hover:text-[#C9A227] font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 transition-all"
-                            title="View Recipe & Nutrition"
-                          >
-                            <Info className="w-3 h-3" />
-                            <span>Details</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCustomizePrebuilt(product)}
-                            className="py-1 px-2 rounded-lg border border-[#C9A227]/50 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-[10px] uppercase tracking-wider flex items-center space-x-1 transition-all"
-                            title="Customize in blender"
-                          >
-                            <Sliders className="w-3 h-3" />
-                            <span>Customize</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        {/* Desktop Details Button */}
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => onOpenProductDetail && onOpenProductDetail(getProductSlug(product))}
-                          className="hidden sm:inline-flex py-2.5 px-3 rounded-xl border border-gray-300 dark:border-[#3E3A2F] text-gray-700 dark:text-[#D0C5AF] hover:border-[#C9A227] hover:text-[#C9A227] font-bold text-xs uppercase tracking-caps items-center justify-center space-x-1.5 transition-all shadow-sm"
-                          title={`View ${product.name} recipe and nutrition details`}
+                          className="py-1 px-2.5 rounded-lg border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] text-gray-600 dark:text-[#AAA] hover:text-[#C9A227] font-semibold text-[11px] flex items-center space-x-1 transition-all"
+                          title="View Recipe & Nutrition"
                         >
-                          <Info className="w-3.5 h-3.5" />
+                          <Info className="w-3 h-3" />
                           <span>Details</span>
                         </button>
 
-                        {/* Desktop Customize Button */}
                         <button
                           type="button"
                           onClick={() => handleCustomizePrebuilt(product)}
-                          className="hidden sm:inline-flex py-2.5 px-3.5 rounded-xl border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-bold text-xs uppercase tracking-caps items-center justify-center space-x-1.5 transition-all shadow-sm"
-                          title={`Customize ${product.name} recipe in Chakki Blender`}
+                          className="py-1 px-2.5 rounded-lg border border-[#C9A227]/40 text-[#C9A227] hover:bg-[#C9A227] hover:text-white font-semibold text-[11px] flex items-center space-x-1 transition-all hidden sm:inline-flex"
+                          title="Customize in blender"
                         >
-                          <Sliders className="w-3.5 h-3.5" />
-                          <span>Customize Recipe</span>
-                        </button>
-
-                        {/* High Visibility, Prominent Add to Cart Button with Reactive State */}
-                        <button
-                          onClick={() => handleAddProductToCart(product)}
-                          disabled={isAdding}
-                          className={`flex-1 sm:flex-initial py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md active:scale-[0.98] cursor-pointer ${
-                            inCartQty > 0
-                              ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-600 shadow-emerald-900/10'
-                              : 'bg-[#C9A227] hover:bg-[#B58F1E] text-white'
-                          }`}
-                        >
-                          {inCartQty > 0 ? (
-                            <Check className="w-4 h-4 stroke-[2.5]" />
-                          ) : (
-                            <ShoppingCart className="w-4 h-4 stroke-[2.2]" />
-                          )}
-                          <span>
-                            {isAdding 
-                              ? 'Adding...' 
-                              : inCartQty > 0
-                                ? inCartQty === 1
-                                  ? 'Added to Cart ✓'
-                                  : `Added ✓ (${inCartQty} in Cart)`
-                                : `Add to Cart • ₹${packPrice}`}
-                          </span>
+                          <Sliders className="w-3 h-3" />
+                          <span>Customize</span>
                         </button>
                       </div>
                     </div>
@@ -729,74 +668,63 @@ export function FlourStudioView({
               })}
 
               {/* PRODUCT 6: MY CHOICE ATTA (Bespoke Customer Blend strictly 10 kg) */}
-              <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-500/10 via-[#C9A227]/10 to-transparent dark:bg-[#1f1d14] border-2 border-[#C9A227] rounded-2xl space-y-3.5 relative shadow-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <span className="inline-flex items-center text-[10px] sm:text-xs font-black tracking-caps uppercase px-2.5 py-1 rounded-lg border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
-                      CUSTOMER BESPOKE BLEND • STRICTLY 10 KG
+              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/10 via-[#C9A227]/5 to-transparent dark:bg-[#1c1a14] border-2 border-[#C9A227] rounded-2xl hover:shadow-md transition-all flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 relative group">
+                {/* Product Content (Clean Flipkart UI, No Photo on Cards per User Request) */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded border border-[#C9A227] text-[#C9A227] bg-[#C9A227]/10">
+                      CUSTOMER BESPOKE BLEND • 10 KG
                     </span>
-                    <h3 
-                      onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
-                      className="font-editorial text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-[#FDFBF7] cursor-pointer hover:text-[#C9A227] transition-colors leading-tight"
-                      title="View My Choice Atta Details"
-                    >
-                      My Choice Atta
-                    </h3>
-                    <div className="pt-0.5">
-                      <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-[#C9A227] block">
-                        Custom Formulation:
-                      </span>
-                      <p className="font-sans text-xs sm:text-sm font-bold text-gray-800 dark:text-[#EDE8DF] leading-snug">
-                        Customer-Customizable Bespoke Grain Flour Laboratory
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right flex-shrink-0 pl-2">
-                    <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-wider text-gray-500 dark:text-[#99907C] block">
-                      Estimated Rate:
-                    </span>
-                    <span className="font-sans font-black text-xl sm:text-2xl md:text-3xl text-[#C9A227]">
-                      ₹85
-                    </span>
-                    <span className="text-xs sm:text-sm font-black text-gray-700 dark:text-[#D0C5AF] block">
-                      /kg (Avg) • 10 kg Batch
+                    <span className="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                      Assured ✓
                     </span>
                   </div>
-                </div>
 
-                <div className="pt-1">
-                  <span className="text-[11px] sm:text-xs uppercase font-black tracking-wider text-gray-900 dark:text-[#FDFBF7] block">
-                    How Bespoke Milling Works:
-                  </span>
-                  <p className="font-sans text-xs sm:text-sm font-bold text-gray-800 dark:text-[#D0C5AF] leading-relaxed mt-1 bg-[#C9A227]/10 p-2.5 rounded-xl border border-[#C9A227]/30">
-                    Your personal flour laboratory. Hand-select your preferred whole grains, ancient millets, pulses, and seeds from our 18 master ingredients to total exactly 10 kg. Ground fresh upon order placement.
+                  <h3 
+                    onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
+                    className="font-bold text-sm sm:text-base text-gray-900 dark:text-[#FDFBF7] hover:text-[#C9A227] transition-colors leading-snug cursor-pointer line-clamp-1"
+                    title="View My Choice Atta Details"
+                  >
+                    My Choice Atta
+                  </h3>
+
+                  <p className="text-[11px] sm:text-xs text-gray-500 dark:text-[#99907C] line-clamp-1">
+                    Pick your exact grain ratios from 18 master whole grains & millets. Ground fresh upon order.
                   </p>
+
+                  {/* Flipkart Pricing Row */}
+                  <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
+                    <span className="font-sans font-black text-base sm:text-lg text-[#C9A227]">
+                      ₹85/kg
+                    </span>
+                    <span className="text-xs font-bold text-gray-600 dark:text-[#AAA]">
+                      (Avg • 10 kg Batch)
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.2 rounded">
+                      Free Delivery
+                    </span>
+                  </div>
                 </div>
 
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-t border-[#C9A227]/30">
-                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                    ✓ Custom Fineness • Live Pricing • Full Ingredient Control
-                  </span>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
-                      className="py-2.5 px-3.5 rounded-xl border border-gray-300 dark:border-[#3E3A2F] text-gray-900 dark:text-[#D0C5AF] hover:text-[#C9A227] hover:border-[#C9A227] font-black text-xs uppercase tracking-caps flex items-center justify-center space-x-1.5 transition-all shadow-sm"
-                      title="View My Choice Atta Details & Concept"
-                    >
-                      <Info className="w-3.5 h-3.5" />
-                      <span>Details</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('customBlender')}
-                      className="flex-1 sm:flex-initial py-2.5 px-4 sm:px-5 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-caps flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer"
-                    >
-                      <Sliders className="w-4 h-4" />
-                      <span>Open Custom Blender (10 kg)</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                {/* Right: Action */}
+                <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-[#2E2A20]">
+                  <button
+                    onClick={() => setActiveTab('customBlender')}
+                    className="flex-1 sm:flex-initial py-2 px-4 rounded-xl bg-[#C9A227] hover:bg-[#B58F1E] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm min-w-[150px] cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Open Blender (10 kg)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onOpenProductDetail && onOpenProductDetail('my-choice-atta')}
+                    className="py-1 px-2.5 rounded-lg border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] text-gray-600 dark:text-[#AAA] hover:text-[#C9A227] font-semibold text-[11px] flex items-center space-x-1 transition-all"
+                    title="View Details"
+                  >
+                    <Info className="w-3 h-3" />
+                    <span>Details</span>
+                  </button>
                 </div>
               </div>
 

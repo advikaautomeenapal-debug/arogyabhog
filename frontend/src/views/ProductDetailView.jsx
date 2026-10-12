@@ -105,6 +105,7 @@ export function ProductDetailView({
     const cartItem = {
       productId: product._id || product.productId,
       name: product.name,
+      image: backendProduct?.imageUrl || product.imageUrl || seoData.imageUrl || '/arogyaBhog_logo.png',
       isCustom: false,
       batchSizeKg: selectedPackSize,
       fineness: 'Medium (Phulka)',
@@ -183,9 +184,10 @@ export function ProductDetailView({
         <div className="space-y-3">
           <div className="w-full aspect-square rounded-2xl overflow-hidden border border-gray-100 dark:border-[#2E2A20] relative bg-amber-50/20 shadow-inner">
             <img 
-              src={seoData.imageUrl} 
+              src={backendProduct?.imageUrl || product.imageUrl || seoData.imageUrl} 
               alt={seoData.imageAlt}
               className="w-full h-full object-cover object-center"
+              onError={(e) => { e.currentTarget.src = seoData.imageUrl || "/arogyaBhog_logo.png"; }}
               loading="eager"
             />
             <span className="absolute top-3 left-3 text-[10px] uppercase font-bold tracking-caps px-2.5 py-1 rounded-lg bg-[#111]/85 text-[#C9A227] backdrop-blur-sm border border-[#C9A227]/40 shadow-md">

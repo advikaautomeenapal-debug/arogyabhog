@@ -45,7 +45,9 @@ import {
   BookOpen,
   MapPin,
   Settings,
-  Tag
+  Tag,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
@@ -187,6 +189,15 @@ export function AdminView({
   const [editProductImageFile, setEditProductImageFile] = useState(null);
   const [editProductImagePreview, setEditProductImagePreview] = useState(null);
   const [isSavingProductEdit, setIsSavingProductEdit] = useState(false);
+
+  // Product Photo Change Dedicated Modal State
+  const [photoChangeProductModal, setPhotoChangeProductModal] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoUrlInput, setPhotoUrlInput] = useState('');
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoUploadSuccess, setPhotoUploadSuccess] = useState('');
+  const [photoUploadError, setPhotoUploadError] = useState('');
 
   // Operating City & Delivery Zone Form State
   const [newCityName, setNewCityName] = useState('');
@@ -840,6 +851,55 @@ export function AdminView({
       alert('Error: ' + err.message);
     } finally {
       setIsSavingProductEdit(false);
+    }
+  };
+
+  // Dedicated Product Photo Change Handlers
+  const handleOpenPhotoChangeModal = (product) => {
+    setPhotoChangeProductModal(product);
+    setPhotoFile(null);
+    setPhotoUrlInput(product.imageUrl || '');
+    setPhotoPreview(product.imageUrl || '');
+    setPhotoUploadSuccess('');
+    setPhotoUploadError('');
+  };
+
+  const handleSavePhotoChange = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!photoChangeProductModal) return;
+
+    setIsUploadingPhoto(true);
+    setPhotoUploadError('');
+    setPhotoUploadSuccess('');
+
+    try {
+      let res;
+      if (photoFile) {
+        res = await api.updateProductPhoto(photoChangeProductModal._id, photoFile);
+      } else if (photoUrlInput && photoUrlInput.trim()) {
+        res = await api.updateProductPhoto(photoChangeProductModal._id, photoUrlInput.trim());
+      } else {
+        setPhotoUploadError('Please select a photo file or enter an image URL.');
+        setIsUploadingPhoto(false);
+        return;
+      }
+
+      if (res && res.success) {
+        setPhotoUploadSuccess(res.message || `Photo updated successfully!`);
+        if (typeof onReloadData === 'function') onReloadData();
+        if (typeof loadFloorData === 'function') loadFloorData();
+
+        setTimeout(() => {
+          setPhotoChangeProductModal(null);
+          setPhotoUploadSuccess('');
+        }, 1200);
+      } else {
+        setPhotoUploadError(res?.message || 'Error updating product photo.');
+      }
+    } catch (err) {
+      setPhotoUploadError(err.message || 'Error updating product photo.');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -2928,28 +2988,47 @@ export function AdminView({
                   key={p._id}
                   className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2e2a20] flex flex-col md:flex-row md:items-center justify-between gap-3"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-editorial text-sm font-semibold text-gray-900 dark:text-[#fdfbf7]">
-                        {p.name}
-                      </h4>
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-[#C9A227] border border-[#C9A227]/30">
-                        {p.badge}
-                      </span>
-                    </div>
-                    {p.grains && p.safeGrains.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        {p.safeGrains.map((g, gIdx) => (
-                          <span key={gIdx} className="text-[9px] px-2 py-0.5 rounded bg-white dark:bg-[#1f1a14] border border-gray-200 dark:border-[#C9A227]/30 text-gray-700 dark:text-[#d0c5af]">
-                            {g.name}: <strong className="text-[#C9A227]">{g.percentage}%</strong>
-                          </span>
-                        ))}
+                  <div className="flex items-center space-x-3 min-w-0">
+                    {/* Product Photo Thumbnail with 1-click change trigger */}
+                    <div 
+                      onClick={() => handleOpenPhotoChangeModal(p)}
+                      className="w-13 h-13 md:w-14 md:h-14 rounded-xl bg-amber-50/50 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20] flex-shrink-0 relative overflow-hidden cursor-pointer group/photo flex items-center justify-center p-1 shadow-xs"
+                      title="Click to change product photo"
+                    >
+                      <img 
+                        src={p.imageUrl || '/arogyaBhog_logo.png'} 
+                        alt={p.name}
+                        className="w-full h-full object-cover rounded-lg group-hover/photo:scale-105 transition-transform"
+                        onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                      />
+                      <div className="absolute inset-0 bg-black/55 opacity-0 group-hover/photo:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                        <Camera className="w-4 h-4 text-white" />
                       </div>
-                    )}
+                    </div>
+
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <h4 className="font-editorial text-sm font-semibold text-gray-900 dark:text-[#fdfbf7] truncate">
+                          {p.name}
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-[#C9A227] border border-[#C9A227]/30">
+                          {p.badge}
+                        </span>
+                      </div>
+                      {p.grains && (p.grains.length > 0 || (p.safeGrains && p.safeGrains.length > 0)) && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {(p.grains || p.safeGrains || []).map((g, gIdx) => (
+                            <span key={gIdx} className="text-[9px] px-2 py-0.5 rounded bg-white dark:bg-[#1f1a14] border border-gray-200 dark:border-[#C9A227]/30 text-gray-700 dark:text-[#d0c5af]">
+                              {g.name}: <strong className="text-[#C9A227]">{g.percentage}%</strong>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2 md:space-x-2.5 flex-shrink-0">
-                    <div className="text-right">
+                  <div className="flex items-center space-x-2 md:space-x-2.5 flex-shrink-0 flex-wrap gap-y-2">
+                    <div className="text-right mr-1">
                       <span className="text-[10px] text-gray-500 dark:text-[#8b826f] block">
                         MRP: ₹{p.mrpPrice}/kg
                       </span>
@@ -2957,6 +3036,17 @@ export function AdminView({
                         Selling: ₹{p.sellingPrice}/kg
                       </span>
                     </div>
+
+                    {/* Change Photo Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPhotoChangeModal(p)}
+                      className="py-1.5 px-2.5 rounded-lg border border-purple-300 dark:border-purple-900/60 hover:border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-xs text-purple-700 dark:text-purple-300 font-semibold flex items-center space-x-1 transition-all"
+                      title="Change Product Photo / Image"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      <span>Photo</span>
+                    </button>
 
                     {/* Active / Disabled Toggle */}
                     <button
@@ -3638,7 +3728,25 @@ export function AdminView({
                       {displayInventory.map((item) => (
                         <tr key={item._id} className="hover:bg-gray-50/50 dark:hover:bg-[#1a1a1a] transition-colors">
                           <td className="py-3 px-3">
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2.5">
+                              <div 
+                                onClick={() => {
+                                  const matchedProd = safeProducts.find(p => p._id === item._id || p.name === item.name) || item;
+                                  handleOpenPhotoChangeModal(matchedProd);
+                                }}
+                                className="w-10 h-10 rounded-lg bg-amber-50/50 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20] flex-shrink-0 relative overflow-hidden cursor-pointer group/invphoto flex items-center justify-center p-0.5"
+                                title="Click to change product photo"
+                              >
+                                <img 
+                                  src={item.imageUrl || (safeProducts.find(p => p._id === item._id)?.imageUrl) || '/arogyaBhog_logo.png'} 
+                                  alt={item.name}
+                                  className="w-full h-full object-cover rounded-md group-hover/invphoto:scale-105 transition-transform"
+                                  onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                                />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/invphoto:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                                  <Camera className="w-3 h-3 text-white" />
+                                </div>
+                              </div>
                               <div>
                                 <strong className="font-editorial text-xs md:text-sm text-gray-900 dark:text-[#fdfbf7] block">
                                   {item.name}
@@ -4391,15 +4499,32 @@ export function AdminView({
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-[#C9A227] border border-[#C9A227]/30">
-                            {p.category || 'Doctor Blend'}
-                          </span>
-                          <h4 className="font-editorial font-bold text-sm text-gray-900 dark:text-[#fdfbf7] mt-1">
-                            {p.name}
-                          </h4>
+                        <div className="flex items-center space-x-2.5">
+                          <div 
+                            onClick={() => handleOpenPhotoChangeModal(p)}
+                            className="w-12 h-12 rounded-xl bg-amber-50/50 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20] flex-shrink-0 relative overflow-hidden cursor-pointer group/cardphoto flex items-center justify-center p-1"
+                            title="Click to change product photo"
+                          >
+                            <img 
+                              src={p.imageUrl || '/arogyaBhog_logo.png'} 
+                              alt={p.name}
+                              className="w-full h-full object-cover rounded-lg group-hover/cardphoto:scale-105 transition-transform"
+                              onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                            />
+                            <div className="absolute inset-0 bg-black/55 opacity-0 group-hover/cardphoto:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                              <Camera className="w-3.5 h-3.5 text-white" />
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-[#C9A227] border border-[#C9A227]/30">
+                              {p.category || 'Doctor Blend'}
+                            </span>
+                            <h4 className="font-editorial font-bold text-sm text-gray-900 dark:text-[#fdfbf7] mt-0.5">
+                              {p.name}
+                            </h4>
+                          </div>
                         </div>
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
                           isActive
                             ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400'
                             : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400'
@@ -4443,6 +4568,16 @@ export function AdminView({
                         }`}
                       >
                         {isActive ? 'Disable SKU' : 'Enable SKU'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPhotoChangeModal(p)}
+                        className="py-1.5 px-2.5 rounded-lg border border-purple-300 dark:border-purple-900/60 hover:border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-xs text-purple-700 dark:text-purple-300 font-semibold flex items-center space-x-1 transition-all"
+                        title="Change Product Photo"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>Photo</span>
                       </button>
 
                       <button
@@ -7123,26 +7258,43 @@ export function AdminView({
                 <label className="text-[11px] font-bold uppercase tracking-caps text-gray-700 dark:text-[#d0c5af] block mb-1">
                   Product Image / Photo
                 </label>
-                <div className="flex items-center space-x-3 p-2.5 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
-                  {editProductImagePreview && (
-                    <img
-                      src={editProductImagePreview}
-                      alt="Preview"
-                      className="w-12 h-12 rounded-lg object-cover border border-gray-300 dark:border-gray-700 flex-shrink-0"
+                <div className="space-y-2 p-2.5 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
+                  <div className="flex items-center space-x-3">
+                    {editProductImagePreview && (
+                      <img
+                        src={editProductImagePreview}
+                        alt="Preview"
+                        className="w-12 h-12 rounded-lg object-cover border border-[#C9A227] flex-shrink-0"
+                        onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                      />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files[0];
+                        if (f) {
+                          setEditProductImageFile(f);
+                          setEditProductImagePreview(URL.createObjectURL(f));
+                        }
+                      }}
+                      className="text-xs text-gray-600 dark:text-[#d0c5af] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#C9A227] file:text-white"
                     />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files[0];
-                      if (f) {
-                        setEditProductImageFile(f);
-                        setEditProductImagePreview(URL.createObjectURL(f));
-                      }
-                    }}
-                    className="text-xs text-gray-600 dark:text-[#d0c5af]"
-                  />
+                  </div>
+                  <div>
+                    <input
+                      type="url"
+                      placeholder="Or enter image URL: https://..."
+                      value={editProductForm.imageUrl || ''}
+                      onChange={(e) => {
+                        setEditProductForm({ ...editProductForm, imageUrl: e.target.value });
+                        if (!editProductImageFile && e.target.value.trim()) {
+                          setEditProductImagePreview(e.target.value.trim());
+                        }
+                      }}
+                      className="w-full p-2 rounded-lg bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -7180,6 +7332,160 @@ export function AdminView({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ========================================================
+          CHANGE PRODUCT PHOTO MODAL (DEDICATED FAST UPDATER)
+          ======================================================== */}
+      {photoChangeProductModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#181818] border-2 border-[#C9A227] p-5 space-y-4 shadow-2xl animate-scaleUp">
+            <div className="flex items-start justify-between border-b border-gray-200 dark:border-[#2e2a20] pb-3">
+              <div>
+                <h3 className="font-editorial text-base font-bold text-gray-900 dark:text-[#fdfbf7] flex items-center space-x-2">
+                  <Camera className="w-4 h-4 text-[#C9A227]" />
+                  <span>Change Product Photo</span>
+                </h3>
+                <p className="text-xs text-[#C9A227] font-semibold mt-0.5">
+                  {photoChangeProductModal.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoChangeProductModal(null);
+                  setPhotoUploadSuccess('');
+                  setPhotoUploadError('');
+                }}
+                className="p-1.5 rounded-lg border border-gray-300 dark:border-[#2e2a20] text-gray-500 hover:text-gray-900 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {photoUploadSuccess && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{photoUploadSuccess}</span>
+              </div>
+            )}
+
+            {photoUploadError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-xl text-rose-800 dark:text-rose-300 text-xs font-semibold flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{photoUploadError}</span>
+              </div>
+            )}
+
+            {/* Live Preview Display */}
+            <div className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-[#121212] border border-gray-200 dark:border-[#2e2a20] rounded-xl space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-[#8b826f]">
+                Photo Preview
+              </span>
+              <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-[#C9A227] shadow-md bg-white dark:bg-[#1a1a1a] flex items-center justify-center relative">
+                {photoPreview ? (
+                  <img 
+                    src={photoPreview} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-gray-400">
+                    <Camera className="w-8 h-8 mb-1" />
+                    <span className="text-[10px]">No Photo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Option A: Upload File */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-[#d0c5af] flex items-center space-x-1.5">
+                <Upload className="w-3.5 h-3.5 text-[#C9A227]" />
+                <span>Upload New Photo (JPG, PNG, WEBP)</span>
+              </label>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files && e.target.files[0];
+                  if (file) {
+                    setPhotoFile(file);
+                    setPhotoPreview(URL.createObjectURL(file));
+                    setPhotoUrlInput('');
+                    setPhotoUploadError('');
+                  }
+                }}
+                className="w-full p-2 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20] text-xs text-gray-700 dark:text-[#d0c5af] file:mr-2.5 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#C9A227] file:text-white hover:file:bg-[#b8911f] file:cursor-pointer"
+              />
+              <p className="text-[10px] text-gray-500 dark:text-[#8b826f]">
+                Supports direct camera photos or product images from your computer or phone (up to 10MB).
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 text-xs text-gray-400 dark:text-gray-500">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-[#2e2a20]"></div>
+              <span className="text-[10px] uppercase font-bold tracking-wider">OR</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-[#2e2a20]"></div>
+            </div>
+
+            {/* Option B: Enter Direct URL */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-[#d0c5af] flex items-center space-x-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
+                <span>Paste Image URL</span>
+              </label>
+              <input 
+                type="url" 
+                placeholder="https://images.unsplash.com/photo-..."
+                value={photoUrlInput}
+                onChange={(e) => {
+                  setPhotoUrlInput(e.target.value);
+                  setPhotoFile(null);
+                  if (e.target.value.trim()) {
+                    setPhotoPreview(e.target.value.trim());
+                  }
+                  setPhotoUploadError('');
+                }}
+                className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none focus:border-[#C9A227]"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center space-x-2 pt-2 border-t border-gray-200 dark:border-[#2e2a20]">
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoChangeProductModal(null);
+                  setPhotoUploadSuccess('');
+                  setPhotoUploadError('');
+                }}
+                className="flex-1 py-2 px-3 rounded-xl border border-gray-300 dark:border-[#2e2a20] text-gray-700 dark:text-[#d0c5af] text-xs font-bold uppercase hover:bg-gray-100 dark:hover:bg-[#202020] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePhotoChange}
+                disabled={isUploadingPhoto}
+                className="flex-1 py-2 px-3 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm disabled:opacity-50"
+              >
+                {isUploadingPhoto ? (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Photo</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

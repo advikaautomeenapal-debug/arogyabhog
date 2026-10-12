@@ -104,130 +104,134 @@ export function HomeView({ onExploreStudio, onSelectDoctorBlend }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           
           {/* Card 1 */}
           <div 
             onClick={() => onSelectDoctorBlend('Everyday Soft Multigrain Atta')}
-            className="p-4 sm:p-5 bg-[#181818] border-2 border-[#2e2a20] hover:border-[#d4af37] transition-all cursor-pointer space-y-3 group rounded-2xl shadow-sm"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-[#d4af37] hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
           >
             <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] sm:text-xs uppercase font-black tracking-caps px-2.5 py-1 border border-[#d4af37]/60 text-[#f2ca50] bg-[#d4af37]/10 rounded-lg">
+              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-[#d4af37]/60 text-[#f2ca50] bg-[#d4af37]/10 rounded">
                 SOFT & PUFFY ROTIS
               </span>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-black text-[#99907c] block">Price:</span>
-                <span className="font-sans font-black text-lg text-[#fdfbf7]">₹68/kg</span>
-              </div>
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                Assured ✓
+              </span>
             </div>
-            <h3 className="font-editorial text-lg sm:text-xl font-black text-[#fdfbf7] group-hover:text-[#f2ca50] transition-colors leading-snug">
+            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-[#f2ca50] transition-colors leading-snug">
               Everyday Soft Multigrain Atta
             </h3>
-            <div className="pt-0.5">
-              <span className="text-[11px] uppercase font-black tracking-wider text-[#d4af37] block">
-                Exact Grain Composition:
+            <p className="text-[11px] text-[#99907c] line-clamp-1">
+              Sharbati wheat with roasted chana, barley, and whole millets.
+            </p>
+            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-sans font-black text-base text-[#fdfbf7]">₹68/kg</span>
+                <span className="text-[10px] text-gray-500 line-through">₹78</span>
+                <span className="text-[10px] font-bold text-emerald-400">12% off</span>
+              </div>
+              <span className="text-xs text-[#f2ca50] uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Select</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
-              <p className="text-xs sm:text-sm font-semibold text-[#EDE8DF] leading-relaxed mt-0.5">
-                Whole Wheat 75%, Roasted Chana 10%, Jau 5%, Soybean 4%, Jowar 3%, Isabgol 2%, Flaxseed 1%.
-              </p>
             </div>
-            <span className="text-xs text-[#f2ca50] uppercase font-black flex items-center space-x-1.5 pt-1">
-              <span>Formulate This Blend</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </span>
           </div>
 
           {/* Card 2 */}
           <div 
             onClick={() => onSelectDoctorBlend('High-Protein & Fitness Flour')}
-            className="p-4 sm:p-5 bg-[#181818] border-2 border-[#2e2a20] hover:border-[#64b5f6] transition-all cursor-pointer space-y-3 group rounded-2xl shadow-sm"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-[#64b5f6] hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
           >
             <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] sm:text-xs uppercase font-black tracking-caps px-2.5 py-1 border border-sky-500/50 text-sky-400 bg-sky-950/20 rounded-lg">
+              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-sky-500/50 text-sky-400 bg-sky-950/20 rounded">
                 22G PROTEIN / 100G
               </span>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-black text-[#99907c] block">Price:</span>
-                <span className="font-sans font-black text-lg text-[#fdfbf7]">₹82/kg</span>
-              </div>
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                Assured ✓
+              </span>
             </div>
-            <h3 className="font-editorial text-lg sm:text-xl font-black text-[#fdfbf7] group-hover:text-sky-400 transition-colors leading-snug">
+            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-sky-400 transition-colors leading-snug">
               High-Protein & Fitness Flour
             </h3>
-            <div className="pt-0.5">
-              <span className="text-[11px] uppercase font-black tracking-wider text-sky-400 block">
-                Exact Grain Composition:
+            <p className="text-[11px] text-[#99907c] line-clamp-1">
+              Enriched with soybean, roasted chana, and barley for sustained fitness.
+            </p>
+            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-sans font-black text-base text-[#fdfbf7]">₹82/kg</span>
+                <span className="text-[10px] text-gray-500 line-through">₹95</span>
+                <span className="text-[10px] font-bold text-emerald-400">14% off</span>
+              </div>
+              <span className="text-xs text-sky-400 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Select</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
-              <p className="text-xs sm:text-sm font-semibold text-[#EDE8DF] leading-relaxed mt-0.5">
-                Whole Wheat 60%, Soybean 15%, Roasted Chana 12%, Jau 8%, Flaxseed 3%, Isabgol 2%.
-              </p>
             </div>
-            <span className="text-xs text-sky-400 uppercase font-black flex items-center space-x-1.5 pt-1">
-              <span>Formulate This Blend</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </span>
           </div>
 
           {/* Card 3 */}
           <div 
             onClick={() => onSelectDoctorBlend('Low-GI Diabetic Care Flour')}
-            className="p-4 sm:p-5 bg-[#181818] border-2 border-[#2e2a20] hover:border-emerald-500 transition-all cursor-pointer space-y-3 group rounded-2xl shadow-sm"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
           >
             <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] sm:text-xs uppercase font-black tracking-caps px-2.5 py-1 border border-emerald-500/50 text-emerald-400 bg-emerald-950/20 rounded-lg">
+              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-emerald-500/50 text-emerald-400 bg-emerald-950/20 rounded">
                 LOW GLYCEMIC INDEX
               </span>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-black text-[#99907c] block">Price:</span>
-                <span className="font-sans font-black text-lg text-[#fdfbf7]">₹78/kg</span>
-              </div>
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                Assured ✓
+              </span>
             </div>
-            <h3 className="font-editorial text-lg sm:text-xl font-black text-[#fdfbf7] group-hover:text-emerald-400 transition-colors leading-snug">
+            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-emerald-400 transition-colors leading-snug">
               Low-GI Diabetic Care Flour
             </h3>
-            <div className="pt-0.5">
-              <span className="text-[11px] uppercase font-black tracking-wider text-emerald-400 block">
-                Exact Grain Composition:
+            <p className="text-[11px] text-[#99907c] line-clamp-1">
+              Barley, methi seed & high soluble fiber for steady glucose release.
+            </p>
+            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-sans font-black text-base text-[#fdfbf7]">₹78/kg</span>
+                <span className="text-[10px] text-gray-500 line-through">₹90</span>
+                <span className="text-[10px] font-bold text-emerald-400">13% off</span>
+              </div>
+              <span className="text-xs text-emerald-400 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Select</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
-              <p className="text-xs sm:text-sm font-semibold text-[#EDE8DF] leading-relaxed mt-0.5">
-                Whole Wheat 50%, Jau 20%, Roasted Chana 10%, Jowar 8%, Bajra 5%, Isabgol 4%, Flaxseed 3%.
-              </p>
             </div>
-            <span className="text-xs text-emerald-400 uppercase font-black flex items-center space-x-1.5 pt-1">
-              <span>Formulate This Blend</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </span>
           </div>
 
           {/* Card 4 */}
           <div 
             onClick={() => onSelectDoctorBlend('Calcium & Bone-Health Millet Blend')}
-            className="p-4 sm:p-5 bg-[#181818] border-2 border-[#2e2a20] hover:border-purple-500 transition-all cursor-pointer space-y-3 group rounded-2xl shadow-sm"
+            className="p-3.5 sm:p-4 bg-[#181818] border border-[#2e2a20] hover:border-purple-500 hover:shadow-md transition-all cursor-pointer space-y-2 group rounded-xl"
           >
             <div className="flex justify-between items-start gap-2">
-              <span className="text-[10px] sm:text-xs uppercase font-black tracking-caps px-2.5 py-1 border border-purple-500/50 text-purple-300 bg-purple-950/20 rounded-lg">
+              <span className="text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 border border-purple-500/50 text-purple-300 bg-purple-950/20 rounded">
                 HIGH CALCIUM & IRON
               </span>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-black text-[#99907c] block">Price:</span>
-                <span className="font-sans font-black text-lg text-[#fdfbf7]">₹75/kg</span>
-              </div>
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                Assured ✓
+              </span>
             </div>
-            <h3 className="font-editorial text-lg sm:text-xl font-black text-[#fdfbf7] group-hover:text-purple-300 transition-colors leading-snug">
+            <h3 className="font-bold text-sm sm:text-base text-[#fdfbf7] group-hover:text-purple-300 transition-colors leading-snug">
               Calcium & Bone-Health Millet Blend
             </h3>
-            <div className="pt-0.5">
-              <span className="text-[11px] uppercase font-black tracking-wider text-purple-300 block">
-                Exact Grain Composition:
+            <p className="text-[11px] text-[#99907c] line-clamp-1">
+              Ragi, bajra & jowar blend providing natural bioavailable minerals.
+            </p>
+            <div className="flex items-center justify-between pt-1 border-t border-[#2e2a20]/60">
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-sans font-black text-base text-[#fdfbf7]">₹75/kg</span>
+                <span className="text-[10px] text-gray-500 line-through">₹88</span>
+                <span className="text-[10px] font-bold text-emerald-400">15% off</span>
+              </div>
+              <span className="text-xs text-purple-300 uppercase font-bold flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Select</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
-              <p className="text-xs sm:text-sm font-semibold text-[#EDE8DF] leading-relaxed mt-0.5">
-                Whole Wheat 65%, Ragi 12%, Jowar 8%, Chana 6%, Bajra 5%, Flaxseed 2%, Isabgol 2%.
-              </p>
             </div>
-            <span className="text-xs text-purple-300 uppercase font-black flex items-center space-x-1.5 pt-1">
-              <span>Formulate This Blend</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </span>
           </div>
 
         </div>
