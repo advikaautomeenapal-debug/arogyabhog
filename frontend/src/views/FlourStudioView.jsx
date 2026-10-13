@@ -24,12 +24,17 @@ import {
   BookOpen,
   HelpCircle,
   MapPin,
-  Bot
+  Bot,
+  Search,
+  Filter,
+  CheckCircle2
 } from 'lucide-react';
 import { calculateProductNutrition, NUTRIENT_DEFINITIONS, formatNutrientValue } from '../utils/nutritionCalculator';
 import { resolveGrainDoc, canonicalGrainName, normalizeIngredientsMap } from '../utils/grainResolver';
 import { getProductSlug, PRODUCT_SEO_CATALOG, SEO_ARTICLES, SEO_FAQS } from '../utils/productSeoData';
 import { getVariantTheme } from '../utils/variantThemes';
+import { getIngredientMeta, getIngredientImage, MASTER_GRAINS_FALLBACK } from '../utils/ingredientImages';
+
 
 export function FlourStudioView({ 
   products, 
@@ -275,6 +280,16 @@ export function FlourStudioView({
   // CUSTOM BLEND CALCULATIONS (REQUIREMENT 3)
   // -------------------------------------------------------------
 
+  // Fallback to 18 master grains if grains prop is not loaded yet
+  const effectiveGrains = useMemo(() => {
+    if (Array.isArray(grains) && grains.length > 0) return grains;
+    return MASTER_GRAINS_FALLBACK;
+  }, [grains]);
+
+  // Ingredient catalogue filtering & search state
+  const [ingredientCategory, setIngredientCategory] = useState('all');
+  const [ingredientSearch, setIngredientSearch] = useState('');
+
   // Calculate cumulative weight
   const currentTotalWeight = useMemo(() => {
     const total = Object.values(customIngredients).reduce((sum, w) => sum + (Number(w) || 0), 0);
@@ -286,10 +301,15 @@ export function FlourStudioView({
     return Number(rem.toFixed(2));
   }, [currentTotalWeight]);
 
+  // Count of ingredients allocated in the current batch
+  const selectedGrainsCount = useMemo(() => {
+    return Object.values(customIngredients).filter(w => Number(w) > 0).length;
+  }, [customIngredients]);
+
   // Dynamic ingredient cost calculation using latest live prices from backend
   const customPricingBreakdown = useMemo(() => {
     const grainsMap = {};
-    grains.forEach(g => { 
+    effectiveGrains.forEach(g => { 
       grainsMap[g.name] = g; 
     });
 
@@ -301,7 +321,7 @@ export function FlourStudioView({
     Object.entries(customIngredients).forEach(([name, weight]) => {
       const w = Number(weight) || 0;
       if (w > 0) {
-        const grainDoc = grainsMap[name] || resolveGrainDoc(name, grains);
+        const grainDoc = grainsMap[name] || resolveGrainDoc(name, effectiveGrains);
         const canonicalName = grainDoc ? grainDoc.name : name;
         const isPending = grainDoc ? (grainDoc.priceStatus === 'pending_configuration' || grainDoc.pricePerKg == null) : false;
         if (isPending) {
@@ -336,7 +356,46 @@ export function FlourStudioView({
       pendingPriceItem,
       finalPrice
     };
-  }, [customIngredients, grains]);
+  }, [customIngredients, effectiveGrains]);
+
+  // Filtered grains based on active category tab and search input
+  const filteredGrains = useMemo(() => {
+    return effectiveGrains.filter((grain) => {
+      const currentKg = customIngredients[grain.name] || 0;
+      const meta = getIngredientMeta(grain);
+
+      // Category matching
+      if (ingredientCategory === 'selected' && currentKg <= 0) return false;
+      if (ingredientCategory === 'base') {
+        const cat = (grain.category || meta.category || '').toLowerCase();
+        if (!cat.includes('base') && !cat.includes('grain')) return false;
+      } else if (ingredientCategory === 'millets') {
+        const cat = (grain.category || meta.category || '').toLowerCase();
+        if (!cat.includes('millet')) return false;
+      } else if (ingredientCategory === 'ancient') {
+        const cat = (grain.category || meta.category || '').toLowerCase();
+        if (!cat.includes('ancient') && !cat.includes('specialty')) return false;
+      } else if (ingredientCategory === 'pulses') {
+        const cat = (grain.category || meta.category || '').toLowerCase();
+        if (!cat.includes('pulse') && !cat.includes('legume') && !cat.includes('protein')) return false;
+      } else if (ingredientCategory === 'seeds') {
+        const cat = (grain.category || meta.category || '').toLowerCase();
+        if (!cat.includes('seed') && !cat.includes('herb') && !cat.includes('oilseed')) return false;
+      }
+
+      // Search query matching (matches English name, Hindi name, benefits, or category)
+      if (ingredientSearch.trim()) {
+        const q = ingredientSearch.toLowerCase().trim();
+        const nameMatch = (grain.name || '').toLowerCase().includes(q);
+        const hindiMatch = (meta.hindiName || '').toLowerCase().includes(q);
+        const catMatch = (grain.category || meta.category || '').toLowerCase().includes(q);
+        const benefitMatch = (grain.benefits || meta.tagline || grain.subtitle || '').toLowerCase().includes(q);
+        if (!nameMatch && !hindiMatch && !catMatch && !benefitMatch) return false;
+      }
+
+      return true;
+    });
+  }, [effectiveGrains, customIngredients, ingredientCategory, ingredientSearch]);
 
   // Live Nutrition Calculation for the Custom Blend (Requirement 3C & 5)
   const customNutritionLive = useMemo(() => {
@@ -345,8 +404,8 @@ export function FlourStudioView({
       percentage: Math.round((item.weightKg / TARGET_CUSTOM_WEIGHT) * 100),
       weightKg: item.weightKg
     }));
-    return calculateProductNutrition(breakdown, TARGET_CUSTOM_WEIGHT, 1, grains, 50);
-  }, [customPricingBreakdown, grains]);
+    return calculateProductNutrition(breakdown, TARGET_CUSTOM_WEIGHT, 1, effectiveGrains, 50);
+  }, [customPricingBreakdown, effectiveGrains]);
 
   // Handle changing ingredient weight (in increments or exact kg)
   const handleIngredientWeightChange = (grainName, newWeight) => {
@@ -354,7 +413,7 @@ export function FlourStudioView({
     setCustomSuccessMessage('');
 
     // Check if ingredient price is pending configuration
-    const grainDoc = grains.find(g => g.name === grainName) || resolveGrainDoc(grainName, grains);
+    const grainDoc = effectiveGrains.find(g => g.name === grainName) || resolveGrainDoc(grainName, effectiveGrains);
     if (grainDoc && (grainDoc.priceStatus === 'pending_configuration' || grainDoc.pricePerKg == null)) {
       setCustomValidationError(`"${grainDoc.name || grainName}" price is currently pending configuration by admin and cannot be added to your blend.`);
       return;
@@ -386,7 +445,7 @@ export function FlourStudioView({
 
   const handleRemoveIngredient = (grainName) => {
     setCustomValidationError('');
-    const grainDoc = resolveGrainDoc(grainName, grains);
+    const grainDoc = resolveGrainDoc(grainName, effectiveGrains);
     const canonical = grainDoc ? grainDoc.name : grainName;
     setCustomIngredients(prev => {
       const updated = { ...prev };
@@ -1657,155 +1716,466 @@ export function FlourStudioView({
             </div>
 
             {/* GRAIN CATALOGUE & QUANTITY ALLOCATION */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2E2A20] pb-2">
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 dark:border-[#2E2A20] pb-3">
                 <div>
-                  <h3 className="font-editorial text-base sm:text-lg font-bold text-gray-900 dark:text-[#FDFBF7]">
-                    Ingredient Selection & Weights
-                  </h3>
-                  <p className="text-[11px] text-gray-500 dark:text-[#99907C]">
-                    Choose weights totaling exactly 10 kg
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-editorial text-lg sm:text-xl font-bold text-gray-900 dark:text-[#FDFBF7]">
+                      Hand-Select Whole Grains & Seeds
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#C9A227]/15 text-[#C9A227] border border-[#C9A227]/30">
+                      {selectedGrainsCount} / {effectiveGrains.length} selected
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-[#99907C] mt-0.5">
+                    Authentic whole grains cold-ground to order. Total weight must equal exactly 10 kg.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setCustomIngredients({})}
-                  className="flex items-center space-x-1 text-[11px] text-[#C9A227] hover:text-[#B58F1E] font-semibold"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Clear All</span>
-                </button>
+                <div className="flex items-center space-x-2 self-start sm:self-auto">
+                  {selectedGrainsCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomIngredients({})}
+                      className="flex items-center space-x-1 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#2E2A20] text-[11px] text-[#C9A227] hover:text-rose-500 hover:border-rose-300 dark:hover:border-rose-900 font-semibold transition-all shadow-xs cursor-pointer"
+                      title="Reset all ingredient weights to 0 kg"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Clear All</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* List of Available Ingredients from Backend */}
-              <div className="space-y-3">
-                {grains.map((grain) => {
-                  const isPendingPrice = grain.priceStatus === 'pending_configuration' || grain.pricePerKg == null;
-                  const currentKg = customIngredients[grain.name] || 0;
-                  const itemCost = isPendingPrice ? 0 : Math.round(currentKg * (grain.pricePerKg || 0));
+              {/* FILTER TABS & SEARCH BAR */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+                {/* Category Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                  {[
+                    { id: 'all', label: `All Grains (${effectiveGrains.length})` },
+                    { id: 'selected', label: `In Blend (${selectedGrainsCount})`, highlight: selectedGrainsCount > 0 },
+                    { id: 'base', label: 'Base Grains' },
+                    { id: 'millets', label: 'Millets' },
+                    { id: 'ancient', label: 'Ancient Grains' },
+                    { id: 'pulses', label: 'Pulses & Protein' },
+                    { id: 'seeds', label: 'Super Seeds & Herbs' },
+                  ].map((cat) => {
+                    const isActive = ingredientCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setIngredientCategory(cat.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1 cursor-pointer ${
+                          isActive
+                            ? 'bg-[#C9A227] text-white shadow-sm ring-2 ring-[#C9A227]/30'
+                            : cat.highlight
+                            ? 'bg-amber-100/70 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50'
+                            : 'bg-gray-100 dark:bg-[#1E1E1E] text-gray-700 dark:text-[#C5BCAB] hover:bg-gray-200 dark:hover:bg-[#2A2A2A]'
+                        }`}
+                      >
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                  return (
-                    <div
-                      key={grain._id || grain.name}
-                      className={`p-4 rounded-2xl border transition-all shadow-sm ${
-                        currentKg > 0 
-                          ? 'bg-amber-50/40 dark:bg-[#1E1B14] border-[#C9A227]' 
-                          : isPendingPrice
-                          ? 'bg-amber-50/20 dark:bg-[#181612] border-amber-200 dark:border-amber-900/30'
-                          : 'bg-white dark:bg-[#181818] border-gray-200 dark:border-[#2E2A20] hover:border-gray-300'
-                      }`}
+                {/* Compact Search Input */}
+                <div className="relative w-full md:w-64 shrink-0">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={ingredientSearch}
+                    onChange={(e) => setIngredientSearch(e.target.value)}
+                    placeholder="Search grains, Hindi names..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-full text-xs bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] text-gray-900 dark:text-[#FDFBF7] placeholder-gray-400 focus:outline-none focus:border-[#C9A227] focus:ring-1 focus:ring-[#C9A227] transition-all"
+                  />
+                  {ingredientSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setIngredientSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span 
-                              className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" 
-                              style={{ backgroundColor: grain.color || '#C9A227' }} 
-                            />
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <h4 className="font-sans font-bold text-sm text-gray-900 dark:text-[#FDFBF7]">
-                                {grain.name}
-                              </h4>
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-gray-100 dark:bg-[#141414] text-gray-600 dark:text-[#99907C] border border-gray-200 dark:border-[#2E2A20]">
-                                {grain.ingredientId || grain.code}
-                              </span>
-                              <span className="text-[10px] text-gray-500 dark:text-[#8B826F]">
-                                • {grain.category}
-                              </span>
-                            </div>
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* GRID OF INGREDIENT PHOTO CARDS */}
+              {filteredGrains.length === 0 ? (
+                <div className="text-center py-12 px-4 rounded-3xl border border-dashed border-gray-300 dark:border-[#333333] bg-gray-50/50 dark:bg-[#141414]/50 space-y-2">
+                  <Scale className="w-8 h-8 mx-auto text-gray-400" />
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    No ingredients match "{ingredientSearch || ingredientCategory}"
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Try searching another grain name or select "All Grains"
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setIngredientCategory('all'); setIngredientSearch(''); }}
+                    className="mt-2 px-3 py-1 text-xs font-bold text-[#C9A227] border border-[#C9A227]/40 rounded-full hover:bg-[#C9A227]/10 cursor-pointer"
+                  >
+                    Reset Filter
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:gap-2.5 md:gap-5 md:grid-cols-3 lg:grid-cols-4">
+                  {filteredGrains.map((grain) => {
+                    const isPendingPrice = grain.priceStatus === 'pending_configuration' || grain.pricePerKg == null;
+                    const currentKg = customIngredients[grain.name] || 0;
+                    const itemCost = isPendingPrice ? 0 : Math.round(currentKg * (grain.pricePerKg || 0));
+                    const meta = getIngredientMeta(grain);
+                    const pctOfBlend = Math.round((currentKg / TARGET_CUSTOM_WEIGHT) * 100);
+
+                    return (
+                      <React.Fragment key={grain._id || grain.ingredientId || grain.name}>
+                        {/* ========================================================
+                            1. MOBILE-ONLY COMPACT CARD (< 768px)
+                            Full-bleed ingredient photograph background (145-155px height)
+                            ======================================================== */}
+                        <div
+                          className={`md:hidden relative flex flex-col justify-between rounded-2xl overflow-hidden transition-all duration-200 select-none h-[150px] sm:h-[158px] p-2.5 shadow-xs ${
+                            currentKg > 0 
+                              ? 'border-2 border-emerald-400 ring-2 ring-emerald-400/35 shadow-md' 
+                              : isPendingPrice
+                              ? 'border border-amber-400/50 opacity-80'
+                              : 'border border-white/20 hover:border-white/40'
+                          }`}
+                          style={{
+                            backgroundImage: currentKg > 0
+                              ? `linear-gradient(to top, rgba(6, 78, 59, 0.92) 0%, rgba(0, 0, 0, 0.65) 55%, rgba(0, 0, 0, 0.4) 100%), url(${meta.image || '/ingredients/sharbati-wheat.jpg'})`
+                              : `linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0.35) 100%), url(${meta.image || '/ingredients/sharbati-wheat.jpg'})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                          }}
+                        >
+                          {/* Top Row: Category tag left, Price pill right */}
+                          <div className="flex items-center justify-between gap-1 w-full">
+                            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-white/90 border border-white/20 truncate max-w-[85px]">
+                              {meta.category || grain.category}
+                            </span>
+
                             {isPendingPrice ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-500/40 font-semibold">
-                                ⚠️ Price Pending
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold backdrop-blur-md bg-amber-600/90 text-white shadow-xs shrink-0 flex items-center space-x-0.5 border border-amber-300/40">
+                                <AlertCircle className="w-2.5 h-2.5" />
+                                <span>Pending</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-[#141414] text-[#C9A227] font-semibold">
-                                ₹{grain.pricePerKg}/kg
+                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-md bg-[#C9A227] text-white shadow-sm border border-amber-200/40 font-mono shrink-0">
+                                ₹{grain.pricePerKg}/k
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-gray-500 dark:text-[#8B826F]">
-                            {grain.subtitle || grain.benefits}
-                          </p>
-                        </div>
 
-                        <div className="text-right">
-                          <span className="font-sans font-bold text-base text-[#C9A227]">
-                            {currentKg} kg
-                          </span>
-                          {currentKg > 0 && (
-                            <span className="text-[11px] text-gray-600 dark:text-[#D0C5AF] block font-mono">
-                              ₹{itemCost}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                          {/* Middle: Grain Title & Subtitle + Active Weight Pill or Quick Add Chips */}
+                          <div className="my-auto space-y-0.5">
+                            <h4 className="font-sans font-bold text-xs sm:text-sm text-white tracking-tight drop-shadow-sm truncate">
+                              {grain.name}
+                            </h4>
 
-                      {isPendingPrice ? (
-                        <div className="pt-2 text-[11px] text-amber-700 dark:text-amber-400 flex items-center space-x-1.5">
-                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>Rate is awaiting administrator configuration. Cannot be added to custom blends yet.</span>
-                        </div>
-                      ) : (
-                        /* Weight Steppers & Direct Input */
-                        <div className="flex items-center space-x-2 pt-2">
-                          <button
-                            onClick={() => handleIngredientWeightChange(grain.name, Math.max(0, currentKg - 0.5))}
-                            className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] hover:bg-gray-100 dark:hover:bg-[#252525] text-gray-800 dark:text-[#FDFBF7] flex items-center justify-center transition-all shadow-sm"
-                            title="Decrease 0.5 kg"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
+                            {meta.hindiName && (
+                              <p className="text-[10px] font-medium text-amber-200/95 leading-tight truncate drop-shadow-xs">
+                                {meta.hindiName}
+                              </p>
+                            )}
 
-                          <div className="flex items-center space-x-1">
-                            <input
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              max={TARGET_CUSTOM_WEIGHT}
-                              value={currentKg || ''}
-                              placeholder="0.0"
-                              onChange={(e) => handleIngredientWeightChange(grain.name, e.target.value)}
-                              className="w-16 p-1.5 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] text-center font-bold text-xs text-gray-900 dark:text-[#FDFBF7] outline-none focus:border-[#C9A227]"
-                            />
-                            <span className="text-xs text-gray-500">kg</span>
+                            {/* Active Allocation Pill (when weight > 0) */}
+                            {currentKg > 0 ? (
+                              <div className="flex items-center space-x-1 pt-0.5">
+                                <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-emerald-500/95 text-white text-[10px] font-extrabold font-mono shadow-xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
+                                  <span>{currentKg} kg</span>
+                                  <span className="text-emerald-100/80 font-normal">({pctOfBlend}%)</span>
+                                </span>
+                                <span className="text-[10px] font-bold text-emerald-200 font-mono drop-shadow-xs">
+                                  ₹{itemCost}
+                                </span>
+                              </div>
+                            ) : (
+                              /* Quick Shortcut chips when unselected */
+                              <div className="flex items-center gap-1 pt-0.5">
+                                {[1, 2].map((amt) => {
+                                  const wouldExceed = (currentTotalWeight + amt) > TARGET_CUSTOM_WEIGHT;
+                                  return (
+                                    <button
+                                      key={amt}
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, amt); }}
+                                      disabled={wouldExceed}
+                                      className="px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/30 disabled:opacity-20 text-[9px] font-bold text-white transition-all cursor-pointer"
+                                    >
+                                      +{amt}k
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
 
-                          <button
-                            onClick={() => handleIngredientWeightChange(grain.name, currentKg + 0.5)}
-                            className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] hover:bg-gray-100 dark:hover:bg-[#252525] text-gray-800 dark:text-[#FDFBF7] flex items-center justify-center transition-all shadow-sm"
-                            title="Increase 0.5 kg"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Bottom: Compact Frosted Stepper Controls */}
+                          <div className="w-full">
+                            {isPendingPrice ? (
+                              <div className="py-1 px-1.5 rounded-lg bg-amber-950/70 border border-amber-400/40 text-[9px] text-amber-200 text-center font-medium">
+                                Rate pending admin setup
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between gap-1 w-full bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/20 shadow-inner">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, Math.max(0, Number((currentKg - 0.5).toFixed(2)))); }}
+                                  disabled={currentKg <= 0}
+                                  className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+                                  title="Decrease 0.5 kg"
+                                  aria-label={`Decrease ${grain.name}`}
+                                >
+                                  <Minus className="w-3 h-3 stroke-[2.5]" />
+                                </button>
 
-                        {/* Quick shortcut pills */}
-                        <div className="flex items-center space-x-1 pl-2">
-                          {[1, 2, 5].map((amt) => (
-                            <button
-                              key={amt}
-                              onClick={() => handleIngredientWeightChange(grain.name, currentKg + amt)}
-                              className="px-2 py-1 rounded-lg border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] text-[10px] text-gray-600 dark:text-[#D0C5AF] font-semibold"
-                            >
-                              +{amt}kg
-                            </button>
-                          ))}
+                                <div className="flex items-center justify-center flex-1 min-w-0 px-0.5">
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max={TARGET_CUSTOM_WEIGHT}
+                                    value={currentKg || ''}
+                                    placeholder="0 kg"
+                                    onChange={(e) => handleIngredientWeightChange(grain.name, e.target.value)}
+                                    className="w-full text-center font-bold text-xs text-white bg-transparent outline-none font-mono placeholder-white/40"
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, Number((currentKg + 0.5).toFixed(2))); }}
+                                  disabled={currentTotalWeight >= TARGET_CUSTOM_WEIGHT && currentKg === 0}
+                                  className="w-7 h-7 rounded-lg bg-[#C9A227] hover:bg-[#B58F1E] active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-xs cursor-pointer font-bold shrink-0"
+                                  title="Increase 0.5 kg"
+                                  aria-label={`Increase ${grain.name}`}
+                                >
+                                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </button>
+
+                                {currentKg > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleRemoveIngredient(grain.name); }}
+                                    className="w-6 h-7 rounded-lg text-rose-300 hover:text-white hover:bg-rose-900/60 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                                    title={`Remove ${grain.name}`}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {currentKg > 0 && (
-                          <button
-                            onClick={() => handleRemoveIngredient(grain.name)}
-                            className="ml-auto text-gray-400 hover:text-rose-500 p-1"
-                            title="Remove from blend"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-                })}
-              </div>
+                        {/* ========================================================
+                            2. DESKTOP & TABLET CARD (>= 768px)
+                            Preserved 100% untouched for laptop/desktop/tablet
+                            ======================================================== */}
+                        <div
+                          className={`hidden md:flex relative flex-col rounded-2xl sm:rounded-3xl border transition-all duration-300 overflow-hidden shadow-xs hover:shadow-lg ${
+                            currentKg > 0 
+                              ? 'bg-amber-50/40 dark:bg-[#1E1B14] border-[#C9A227] dark:border-[#C9A227] ring-2 ring-[#C9A227]/25 shadow-md' 
+                              : isPendingPrice
+                              ? 'bg-stone-50/30 dark:bg-[#181612] border-amber-200/60 dark:border-amber-900/30 opacity-80'
+                              : 'bg-white dark:bg-[#181818] border-gray-200 dark:border-[#2E2A20] hover:border-gray-300 dark:hover:border-gray-700'
+                          }`}
+                        >
+                          {/* Top: Realistic Macro Photography Container */}
+                          <div className="relative aspect-[16/10] sm:aspect-[4/3] w-full overflow-hidden bg-stone-100 dark:bg-[#1A1A1A]">
+                            <img
+                              src={meta.image}
+                              alt={grain.name}
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/ingredients/sharbati-wheat.jpg';
+                              }}
+                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+                            />
+
+                            {/* Gradient shadow for text contrast */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+
+                            {/* Top-Left Category Badge */}
+                            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-white/95 border border-white/20 shadow-xs">
+                                {meta.category || grain.category}
+                              </span>
+                              {grain.ingredientId && (
+                                <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-mono backdrop-blur-md bg-black/50 text-amber-200 border border-white/10">
+                                  {grain.ingredientId}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Top-Right Price Tag */}
+                            <div className="absolute top-2.5 right-2.5 z-10">
+                              {isPendingPrice ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-md bg-amber-600/90 text-white shadow-xs flex items-center space-x-1 border border-amber-300/40">
+                                  <AlertCircle className="w-3 h-3" />
+                                  <span>Price Pending</span>
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-md bg-[#C9A227]/95 text-white shadow-md border border-amber-200/40 font-mono">
+                                  ₹{grain.pricePerKg}/kg
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Active Allocation Banner overlay on photo */}
+                            {currentKg > 0 && (
+                              <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between backdrop-blur-md bg-emerald-950/85 border border-emerald-400/60 rounded-xl px-2.5 py-1.5 text-white shadow-md">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                  <span className="text-xs font-extrabold text-emerald-200 font-mono">
+                                    {currentKg} kg
+                                  </span>
+                                  <span className="text-[10px] text-emerald-300/80">
+                                    ({pctOfBlend}%)
+                                  </span>
+                                </div>
+                                <span className="text-xs font-bold text-emerald-100 font-mono">
+                                  ₹{itemCost}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Card Content Body */}
+                          <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between space-y-3 bg-white dark:bg-[#181818]">
+                            <div>
+                              <div className="flex items-start justify-between gap-1">
+                                <div>
+                                  <h4 className="font-sans font-bold text-sm sm:text-base text-gray-900 dark:text-[#FDFBF7] tracking-tight group-hover:text-[#C9A227] transition-colors">
+                                    {grain.name}
+                                  </h4>
+                                  {meta.hindiName && (
+                                    <p className="text-[11px] font-medium text-amber-700 dark:text-[#D4AF37] leading-snug">
+                                      {meta.hindiName}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <p className="text-[11px] text-gray-500 dark:text-[#99907C] line-clamp-2 mt-1 leading-relaxed">
+                                {grain.benefits || meta.tagline || grain.subtitle}
+                              </p>
+
+                              {meta.keyNutrient && (
+                                <div className="mt-2 inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-[#201D14] border border-[#C9A227]/30 text-[10px] font-medium text-amber-900 dark:text-[#D4AF37]">
+                                  <Sparkles className="w-2.5 h-2.5 text-[#C9A227] shrink-0" />
+                                  <span className="truncate">{meta.keyNutrient}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Stepper & Allocation Controls */}
+                            <div className="pt-2 border-t border-gray-100 dark:border-[#262626] space-y-2">
+                              {isPendingPrice ? (
+                                <div className="py-2 px-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-center space-x-1.5">
+                                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                  <span>Awaiting admin rate configuration.</span>
+                                </div>
+                              ) : (
+                                <>
+                                  {/* Stepper Row */}
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <div className="flex items-center space-x-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleIngredientWeightChange(grain.name, Math.max(0, Number((currentKg - 0.5).toFixed(2))))}
+                                        disabled={currentKg <= 0}
+                                        className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] hover:bg-gray-100 dark:hover:bg-[#252525] disabled:opacity-30 disabled:cursor-not-allowed text-gray-800 dark:text-[#FDFBF7] flex items-center justify-center transition-all shadow-xs active:scale-95 cursor-pointer"
+                                        title="Decrease 0.5 kg"
+                                      >
+                                        <Minus className="w-3.5 h-3.5" />
+                                      </button>
+
+                                      <div className="relative flex items-center">
+                                        <input
+                                          type="number"
+                                          step="0.1"
+                                          min="0"
+                                          max={TARGET_CUSTOM_WEIGHT}
+                                          value={currentKg || ''}
+                                          placeholder="0.0"
+                                          onChange={(e) => handleIngredientWeightChange(grain.name, e.target.value)}
+                                          className="w-16 h-8 px-1 pr-4 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] text-center font-bold text-xs text-gray-900 dark:text-[#FDFBF7] outline-none focus:border-[#C9A227] focus:ring-1 focus:ring-[#C9A227]"
+                                        />
+                                        <span className="absolute right-1 text-[9px] font-medium text-gray-400 pointer-events-none">kg</span>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleIngredientWeightChange(grain.name, Number((currentKg + 0.5).toFixed(2)))}
+                                        disabled={currentTotalWeight >= TARGET_CUSTOM_WEIGHT && currentKg === 0}
+                                        className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#141414] hover:bg-gray-100 dark:hover:bg-[#252525] disabled:opacity-30 disabled:cursor-not-allowed text-gray-800 dark:text-[#FDFBF7] flex items-center justify-center transition-all shadow-xs active:scale-95 cursor-pointer"
+                                        title="Increase 0.5 kg"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+
+                                    {/* Clear button if currently in blend */}
+                                    {currentKg > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveIngredient(grain.name)}
+                                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors ml-auto cursor-pointer"
+                                        title={`Remove ${grain.name} from blend`}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Quick addition chips */}
+                                  <div className="flex items-center gap-1 pt-1 overflow-x-auto no-scrollbar">
+                                    <span className="text-[9px] uppercase font-bold text-gray-400 dark:text-[#8B826F] shrink-0 mr-0.5">
+                                      Quick:
+                                    </span>
+                                    {[0.5, 1, 2, 5].map((amt) => {
+                                      const wouldExceed = (currentTotalWeight + amt) > TARGET_CUSTOM_WEIGHT;
+                                      return (
+                                        <button
+                                          key={amt}
+                                          type="button"
+                                          onClick={() => handleIngredientWeightChange(grain.name, Number((currentKg + amt).toFixed(2)))}
+                                          disabled={wouldExceed}
+                                          className="px-2 py-0.5 rounded-lg border border-gray-200 dark:border-[#2E2A20] hover:border-[#C9A227] hover:bg-amber-50 dark:hover:bg-[#252219] disabled:opacity-25 disabled:cursor-not-allowed text-[10px] font-semibold text-gray-700 dark:text-[#D0C5AF] transition-all shrink-0 cursor-pointer"
+                                        >
+                                          +{amt}k
+                                        </button>
+                                      );
+                                    })}
+
+                                    {/* Smart Fill chip if remaining weight fits */}
+                                    {remainingWeight > 0 && remainingWeight <= 5 && currentKg === 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleIngredientWeightChange(grain.name, remainingWeight)}
+                                        className="px-2 py-0.5 rounded-lg border border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] transition-all shrink-0 hover:bg-emerald-100 cursor-pointer"
+                                        title={`Allocate entire remaining ${remainingWeight} kg to ${grain.name}`}
+                                      >
+                                        Fill {remainingWeight}k
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Fineness Selection */}
