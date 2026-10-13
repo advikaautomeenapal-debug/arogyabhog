@@ -199,9 +199,21 @@ router.put('/:id', protect, adminOnly, upload.single('image'), async (req, res) 
       } catch (e) {}
     }
 
+    if (typeof updateData.availablePackSizes === 'string') {
+      try {
+        updateData.availablePackSizes = JSON.parse(updateData.availablePackSizes);
+      } catch (e) {}
+    }
+
+    if (typeof updateData.isActive === 'string') {
+      updateData.isActive = updateData.isActive === 'true';
+    }
+
     if (req.file) {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       updateData.imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    } else if (updateData.removePhoto === true || updateData.removePhoto === 'true') {
+      updateData.imageUrl = '';
     }
 
     if (updateData.mrpPrice && updateData.sellingPrice) {
@@ -347,6 +359,25 @@ const handleProductPhotoUpdate = async (req, res) => {
 router.post('/:id/photo', protect, adminOnly, photoUpload, handleProductPhotoUpdate);
 router.patch('/:id/photo', protect, adminOnly, photoUpload, handleProductPhotoUpdate);
 router.put('/:id/photo', protect, adminOnly, photoUpload, handleProductPhotoUpdate);
+
+// DELETE /api/products/:id/photo (Dedicated product photo remover)
+router.delete('/:id/photo', protect, adminOnly, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    product.imageUrl = '';
+    await product.save();
+    res.json({
+      success: true,
+      message: `Product photo removed successfully for "${product.name}"!`,
+      data: product
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // PATCH /api/products/:id/toggle (Toggle active status)
 router.patch('/:id/toggle', protect, adminOnly, async (req, res) => {

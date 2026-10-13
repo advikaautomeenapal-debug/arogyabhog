@@ -186,11 +186,17 @@ export function AdminView({
     benefitKeynote: '',
     isActive: true,
     availablePackSizes: [5, 10],
-    imageUrl: ''
+    imageUrl: '',
+    removePhoto: false,
+    grains: []
   });
   const [editProductImageFile, setEditProductImageFile] = useState(null);
   const [editProductImagePreview, setEditProductImagePreview] = useState(null);
   const [isSavingProductEdit, setIsSavingProductEdit] = useState(false);
+
+  // Pre-built Product Deletion Confirmation Modal State
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
 
   // Product Photo Change Dedicated Modal State
   const [photoChangeProductModal, setPhotoChangeProductModal] = useState(null);
@@ -446,21 +452,42 @@ export function AdminView({
     }
   };
 
-  const handleDeleteProduct = async (productOrId, optionalName) => {
-    const id = typeof productOrId === 'object' && productOrId ? productOrId._id : productOrId;
-    const name = typeof productOrId === 'object' && productOrId ? productOrId.name : (optionalName || 'this product');
-    if (!window.confirm(`Are you sure you want to remove "${name}" from the customer panel? (Historical orders will safely retain recipe information)`)) return;
+  // Pre-built Product Deletion Confirmation Flow
+  const handleDeleteProduct = (productOrId, optionalName) => {
+    if (typeof productOrId === 'object' && productOrId) {
+      setProductToDelete({
+        _id: productOrId._id,
+        name: productOrId.name,
+        badge: productOrId.badge || '',
+        sellingPrice: productOrId.sellingPrice || 0
+      });
+    } else {
+      setProductToDelete({
+        _id: productOrId,
+        name: optionalName || 'this product',
+        badge: '',
+        sellingPrice: 0
+      });
+    }
+  };
+
+  const handleConfirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeletingProduct(true);
     try {
-      const res = await api.deleteProduct(id);
+      const res = await api.deleteProduct(productToDelete._id);
       if (res.success) {
-        alert(res.message || 'Product removed safely.');
-        onReloadData();
-        loadFloorData();
+        alert(res.message || `Product "${productToDelete.name}" removed safely.`);
+        setProductToDelete(null);
+        if (typeof onReloadData === 'function') onReloadData();
+        if (typeof loadFloorData === 'function') loadFloorData();
       } else {
         alert(res.message || 'Could not delete product');
       }
     } catch (e) {
       alert('Error: ' + e.message);
+    } finally {
+      setIsDeletingProduct(false);
     }
   };
 
@@ -802,6 +829,19 @@ export function AdminView({
 
   const handleOpenProductEditModal = (product) => {
     setEditingProductModal(product);
+    const grainsArray = (product.grains && Array.isArray(product.grains) && product.grains.length > 0)
+      ? product.grains
+      : (product.safeGrains && Array.isArray(product.safeGrains) && product.safeGrains.length > 0)
+      ? product.safeGrains
+      : [];
+    const existingGrains = grainsArray.length > 0
+      ? grainsArray.map(g => ({
+          ingredientId: g.ingredientId || '',
+          name: g.name,
+          percentage: Number(g.percentage) || 0
+        }))
+      : [];
+
     setEditProductForm({
       name: product.name || '',
       category: product.category || 'specialized',
@@ -814,22 +854,73 @@ export function AdminView({
       benefitKeynote: product.benefitKeynote || '',
       isActive: product.isActive !== false,
       availablePackSizes: product.availablePackSizes || [5, 10],
-      imageUrl: product.imageUrl || ''
+      imageUrl: product.imageUrl || '',
+      removePhoto: false,
+      grains: existingGrains
     });
     setEditProductImageFile(null);
     setEditProductImagePreview(product.imageUrl || null);
   };
 
+  const handleEditModalGrainRatioChange = (index, value) => {
+    const parsed = Math.max(0, Math.min(100, Number(value) || 0));
+    const updated = [...(editProductForm.grains || [])];
+    updated[index] = { ...updated[index], percentage: parsed };
+    setEditProductForm(prev => ({ ...prev, grains: updated }));
+  };
+
+  const handleEditModalGrainIngredientChange = (index, ingredientId) => {
+    const selectedGrain = safeGrains.find(g => (g.ingredientId || g.code) === ingredientId || g.name === ingredientId);
+    const updated = [...(editProductForm.grains || [])];
+    updated[index] = {
+      ...updated[index],
+      ingredientId: selectedGrain?.ingredientId || ingredientId,
+      name: selectedGrain?.name || ingredientId
+    };
+    setEditProductForm(prev => ({ ...prev, grains: updated }));
+  };
+
+  const handleEditModalAddGrain = () => {
+    const curGrains = editProductForm.grains || [];
+    const available = safeGrains.find(g => !curGrains.some(rg => rg.name === g.name)) || safeGrains[0];
+    setEditProductForm(prev => ({
+      ...prev,
+      grains: [
+        ...(prev.grains || []),
+        {
+          ingredientId: available?.ingredientId || 'RM-001',
+          name: available?.name || 'Whole Wheat',
+          percentage: 0
+        }
+      ]
+    }));
+  };
+
+  const handleEditModalRemoveGrain = (index) => {
+    const updated = (editProductForm.grains || []).filter((_, i) => i !== index);
+    setEditProductForm(prev => ({ ...prev, grains: updated }));
+  };
+
   const handleSubmitProductEdit = async (e) => {
     e.preventDefault();
     if (!editingProductModal) return;
+
+    // Validate grains if configured
+    if (editProductForm.grains && editProductForm.grains.length > 0) {
+      const totalPct = editProductForm.grains.reduce((sum, g) => sum + (Number(g.percentage) || 0), 0);
+      if (Math.abs(totalPct - 100) > 0.05) {
+        alert(`Blend recipe ingredients must total exactly 100%. Current total is ${totalPct.toFixed(1)}%. Please adjust before saving.`);
+        return;
+      }
+    }
+
     setIsSavingProductEdit(true);
     try {
       let res;
       if (editProductImageFile) {
         const formDataToSend = new FormData();
         Object.keys(editProductForm).forEach(k => {
-          if (k === 'availablePackSizes') {
+          if (k === 'availablePackSizes' || k === 'grains') {
             formDataToSend.append(k, JSON.stringify(editProductForm[k]));
           } else {
             formDataToSend.append(k, editProductForm[k]);
@@ -842,7 +933,7 @@ export function AdminView({
       }
 
       if (res.success) {
-        alert('Product details updated successfully!');
+        alert('Product details and formulation updated successfully!');
         setEditingProductModal(null);
         loadFloorData();
         onReloadData();
@@ -900,6 +991,37 @@ export function AdminView({
       }
     } catch (err) {
       setPhotoUploadError(err.message || 'Error updating product photo.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhotoFromModal = async () => {
+    if (!photoChangeProductModal) return;
+    if (!window.confirm(`Are you sure you want to remove the photo for "${photoChangeProductModal.name}"?`)) return;
+
+    setIsUploadingPhoto(true);
+    setPhotoUploadError('');
+    setPhotoUploadSuccess('');
+    try {
+      const res = await api.removeProductPhoto(photoChangeProductModal._id);
+      if (res && res.success) {
+        setPhotoPreview('');
+        setPhotoUrlInput('');
+        setPhotoFile(null);
+        setPhotoUploadSuccess('Product photo removed successfully!');
+        if (typeof onReloadData === 'function') onReloadData();
+        if (typeof loadFloorData === 'function') loadFloorData();
+
+        setTimeout(() => {
+          setPhotoChangeProductModal(null);
+          setPhotoUploadSuccess('');
+        }, 1200);
+      } else {
+        setPhotoUploadError(res?.message || 'Could not remove product photo.');
+      }
+    } catch (err) {
+      setPhotoUploadError(err.message || 'Error removing product photo.');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -1044,8 +1166,13 @@ export function AdminView({
   const handleOpenRecipeEditor = (product) => {
     setEditingRecipeProduct(product);
     setRecipeSuccessMsg('');
-    const existingGrains = product.grains && product.safeGrains.length > 0 
-      ? product.safeGrains.map(g => ({
+    const grainsArray = (product.grains && Array.isArray(product.grains) && product.grains.length > 0)
+      ? product.grains
+      : (product.safeGrains && Array.isArray(product.safeGrains) && product.safeGrains.length > 0)
+      ? product.safeGrains
+      : [];
+    const existingGrains = grainsArray.length > 0 
+      ? grainsArray.map(g => ({
           ingredientId: g.ingredientId || '',
           name: g.name,
           percentage: Number(g.percentage) || 0
@@ -4571,23 +4698,23 @@ export function AdminView({
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2 pt-2 border-t border-gray-200 dark:border-[#2e2a20]">
+                    <div className="flex items-center space-x-1.5 pt-2 border-t border-gray-200 dark:border-[#2e2a20] flex-wrap gap-y-1">
                       <button
                         type="button"
                         onClick={() => handleToggleProductActive(p._id)}
-                        className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold uppercase transition-all ${
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold uppercase transition-all ${
                           isActive
                             ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-900 hover:bg-rose-100'
                             : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
                         }`}
                       >
-                        {isActive ? 'Disable SKU' : 'Enable SKU'}
+                        {isActive ? 'Deactivate' : 'Activate'}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleOpenPhotoChangeModal(p)}
-                        className="py-1.5 px-2.5 rounded-lg border border-purple-300 dark:border-purple-900/60 hover:border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-xs text-purple-700 dark:text-purple-300 font-semibold flex items-center space-x-1 transition-all"
+                        className="py-1.5 px-2 rounded-lg border border-purple-300 dark:border-purple-900/60 hover:border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-xs text-purple-700 dark:text-purple-300 font-semibold flex items-center space-x-1 transition-all"
                         title="Change Product Photo"
                       >
                         <Camera className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
@@ -4596,9 +4723,29 @@ export function AdminView({
 
                       <button
                         type="button"
-                        onClick={() => handleDeleteProduct(p._id, p.name)}
+                        onClick={() => handleOpenRecipeEditor(p)}
+                        className="py-1.5 px-2 rounded-lg border border-[#C9A227]/60 hover:border-[#C9A227] bg-[#C9A227]/10 text-xs text-[#C9A227] font-semibold flex items-center space-x-1 transition-all"
+                        title="Edit Recipe Ingredients"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Recipe</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenProductEditModal(p)}
+                        className="py-1.5 px-2 rounded-lg border border-gray-300 dark:border-[#2e2a20] hover:border-[#C9A227] text-xs text-gray-700 dark:text-[#d0c5af] font-semibold flex items-center space-x-1"
+                        title="Edit Product Details & Formulation"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProduct(p)}
                         className="p-1.5 rounded-lg border border-gray-300 dark:border-[#2e2a20] hover:border-rose-500 text-gray-400 hover:text-rose-500 transition-all"
-                        title="Safely remove from customer panel"
+                        title="Safely delete product (requires confirmation)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -7283,41 +7430,65 @@ export function AdminView({
                 />
               </div>
 
-              {/* Product Image Update */}
+              {/* Product Image Update & Remove Photo */}
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-caps text-gray-700 dark:text-[#d0c5af] block mb-1">
                   Product Image / Photo
                 </label>
-                <div className="space-y-2 p-2.5 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
-                  <div className="flex items-center space-x-3">
-                    {editProductImagePreview && (
-                      <img
-                        src={editProductImagePreview}
-                        alt="Preview"
-                        className="w-12 h-12 rounded-lg object-cover border border-[#C9A227] flex-shrink-0"
-                        onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                <div className="space-y-2 p-3 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center space-x-3">
+                      {editProductImagePreview ? (
+                        <img
+                          src={editProductImagePreview}
+                          alt="Preview"
+                          className="w-12 h-12 rounded-lg object-cover border border-[#C9A227] flex-shrink-0"
+                          onError={(e) => { e.currentTarget.src = "/arogyaBhog_logo.png"; }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-[#1f1a14] border border-dashed border-gray-300 dark:border-[#3e382b] flex items-center justify-center text-gray-400">
+                          <Camera className="w-5 h-5" />
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files && e.target.files[0];
+                          if (f) {
+                            setEditProductImageFile(f);
+                            setEditProductImagePreview(URL.createObjectURL(f));
+                            setEditProductForm(prev => ({ ...prev, removePhoto: false }));
+                          }
+                        }}
+                        className="text-xs text-gray-600 dark:text-[#d0c5af] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#C9A227] file:text-white"
                       />
+                    </div>
+
+                    {editProductImagePreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditProductImageFile(null);
+                          setEditProductImagePreview(null);
+                          setEditProductForm(prev => ({ ...prev, imageUrl: '', removePhoto: true }));
+                        }}
+                        className="py-1 px-2.5 rounded-lg border border-rose-300 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center space-x-1 hover:bg-rose-100 transition-colors"
+                        title="Remove current photo from this product"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Remove Photo</span>
+                      </button>
                     )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const f = e.target.files[0];
-                        if (f) {
-                          setEditProductImageFile(f);
-                          setEditProductImagePreview(URL.createObjectURL(f));
-                        }
-                      }}
-                      className="text-xs text-gray-600 dark:text-[#d0c5af] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#C9A227] file:text-white"
-                    />
                   </div>
+
                   <div>
                     <input
                       type="url"
                       placeholder="Or enter image URL: https://..."
                       value={editProductForm.imageUrl || ''}
                       onChange={(e) => {
-                        setEditProductForm({ ...editProductForm, imageUrl: e.target.value });
+                        setEditProductForm({ ...editProductForm, imageUrl: e.target.value, removePhoto: false });
                         if (!editProductImageFile && e.target.value.trim()) {
                           setEditProductImagePreview(e.target.value.trim());
                         }
@@ -7328,18 +7499,108 @@ export function AdminView({
                 </div>
               </div>
 
-              {/* Active Toggle */}
-              <div className="flex items-center space-x-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="editIsActive"
-                  checked={editProductForm.isActive}
-                  onChange={(e) => setEditProductForm({ ...editProductForm, isActive: e.target.checked })}
-                  className="w-4 h-4 accent-[#C9A227]"
-                />
-                <label htmlFor="editIsActive" className="text-xs font-bold text-gray-900 dark:text-[#fdfbf7] cursor-pointer">
-                  Active (Visible in customer catalogue for ordering)
-                </label>
+              {/* Recipe Ingredients & Percentages (100% Strict Formulation) */}
+              <div className="space-y-2 p-3 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-caps text-gray-700 dark:text-[#d0c5af] block">
+                      Recipe Ingredients & Formulation
+                    </label>
+                    <span className="text-[10px] text-gray-500 dark:text-[#8b826f]">
+                      Modify grains & percentages (must balance to 100%)
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {(() => {
+                      const totalPct = (editProductForm.grains || []).reduce((sum, g) => sum + (Number(g.percentage) || 0), 0);
+                      const isBalanced = Math.abs(totalPct - 100) < 0.05;
+                      return (
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
+                          isBalanced
+                            ? 'border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400'
+                            : 'border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400'
+                        }`}>
+                          {isBalanced ? '✓ 100%' : `${totalPct.toFixed(1)}% / 100%`}
+                        </span>
+                      );
+                    })()}
+                    <button
+                      type="button"
+                      onClick={handleEditModalAddGrain}
+                      className="py-1 px-2 rounded-lg border border-[#C9A227] text-[#C9A227] hover:bg-[#C9A227] hover:text-white dark:hover:text-[#121212] text-[10px] font-bold flex items-center space-x-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {(editProductForm.grains && editProductForm.grains.length > 0) ? (
+                    editProductForm.grains.map((rg, idx) => (
+                      <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2e2a20]">
+                        <select
+                          value={rg.ingredientId || rg.name}
+                          onChange={(e) => handleEditModalGrainIngredientChange(idx, e.target.value)}
+                          className="flex-1 p-1.5 rounded-lg bg-gray-50 dark:bg-[#131313] border border-gray-300 dark:border-[#2e2a20] text-xs font-semibold text-gray-900 dark:text-[#fdfbf7] outline-none"
+                        >
+                          {safeGrains.map(g => (
+                            <option key={g._id} value={g.ingredientId || g.code || g.name}>
+                              {g.name} [{g.ingredientId || g.code}]
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex items-center space-x-1">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            max="100"
+                            value={rg.percentage}
+                            onChange={(e) => handleEditModalGrainRatioChange(idx, e.target.value)}
+                            className="w-14 p-1 text-center font-bold text-xs text-[#C9A227] bg-gray-50 dark:bg-[#131313] border border-gray-300 dark:border-[#2e2a20] rounded-lg outline-none font-mono"
+                          />
+                          <span className="text-xs font-bold text-[#C9A227]">%</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleEditModalRemoveGrain(idx)}
+                          className="p-1 text-gray-400 hover:text-rose-500"
+                          title="Remove ingredient"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[11px] text-gray-500 italic p-2 text-center">
+                      No custom ingredient formula specified. Click "Add" above to customize ingredients and percentages.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Active / Deactivated Status Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
+                <div>
+                  <span className="text-xs font-bold text-gray-900 dark:text-[#fdfbf7] block">
+                    Product Storefront Status
+                  </span>
+                  <span className="text-[10px] text-gray-500 dark:text-[#8b826f]">
+                    {editProductForm.isActive ? 'Active — Live in store & catalogue' : 'Deactivated — Hidden from customers'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditProductForm({ ...editProductForm, isActive: !editProductForm.isActive })}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
+                    editProductForm.isActive
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-400'
+                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-400'
+                  }`}
+                >
+                  {editProductForm.isActive ? 'Active (Live)' : 'Deactivated'}
+                </button>
               </div>
             </div>
 
@@ -7492,10 +7753,24 @@ export function AdminView({
                   setPhotoUploadSuccess('');
                   setPhotoUploadError('');
                 }}
-                className="flex-1 py-2 px-3 rounded-xl border border-gray-300 dark:border-[#2e2a20] text-gray-700 dark:text-[#d0c5af] text-xs font-bold uppercase hover:bg-gray-100 dark:hover:bg-[#202020] transition-colors"
+                className="py-2 px-3 rounded-xl border border-gray-300 dark:border-[#2e2a20] text-gray-700 dark:text-[#d0c5af] text-xs font-bold uppercase hover:bg-gray-100 dark:hover:bg-[#202020] transition-colors"
               >
                 Cancel
               </button>
+
+              {(photoPreview || photoChangeProductModal.imageUrl) && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhotoFromModal}
+                  disabled={isUploadingPhoto}
+                  className="py-2 px-3 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-xs font-bold uppercase flex items-center justify-center space-x-1 transition-all disabled:opacity-50"
+                  title="Remove photo from this product"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove Photo</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleSavePhotoChange}
@@ -7511,6 +7786,81 @@ export function AdminView({
                   <>
                     <Save className="w-3.5 h-3.5" />
                     <span>Save Photo</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          CONFIRM DELETE PRODUCT MODAL (PRE-BUILT DELETION GUARD)
+          ======================================================== */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#181818] border-2 border-rose-500 p-6 space-y-4 shadow-2xl animate-scaleUp">
+            <div className="flex items-start justify-between border-b border-gray-200 dark:border-[#2e2a20] pb-3">
+              <div className="flex items-center space-x-2.5 text-rose-600 dark:text-rose-400">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                </div>
+                <div>
+                  <h3 className="font-editorial text-base font-bold text-gray-900 dark:text-[#fdfbf7]">
+                    Confirm Product Deletion
+                  </h3>
+                  <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 tracking-wider">
+                    Deletion Safety Confirmation
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="p-1.5 rounded-lg border border-gray-300 dark:border-[#2e2a20] text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm text-gray-800 dark:text-[#e5e2e1]">
+                Are you sure you want to delete <strong className="text-rose-600 dark:text-rose-400 font-editorial text-base font-bold">"{productToDelete.name}"</strong>?
+              </p>
+              <div className="p-3.5 rounded-xl bg-amber-50/60 dark:bg-[#1c1913] border border-amber-300 dark:border-amber-900/50 text-xs text-amber-900 dark:text-[#d0c5af] space-y-1">
+                <div className="flex items-center space-x-1.5 font-bold text-amber-800 dark:text-[#C9A227]">
+                  <Shield className="w-4 h-4 flex-shrink-0" />
+                  <span>Pre-Built Product & Order History Safety</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  This product will be removed from customer display. All historical customer orders, recipe specifications, and ledgers remain permanently preserved in database records.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2.5 pt-2 border-t border-gray-200 dark:border-[#2e2a20]">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl border border-gray-300 dark:border-[#2e2a20] text-gray-700 dark:text-[#d0c5af] text-xs font-bold uppercase hover:bg-gray-100 dark:hover:bg-[#202020] transition-colors"
+              >
+                Cancel (Keep)
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={handleConfirmDeleteProduct}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-md disabled:opacity-50"
+              >
+                {isDeletingProduct ? (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Delete</span>
                   </>
                 )}
               </button>

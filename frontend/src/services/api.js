@@ -341,6 +341,19 @@ export const api = {
     }
   },
 
+  async removeProductPhoto(id) {
+    try {
+      const res = await fetch(`${API_BASE}/products/${id}/photo`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('API Error (removeProductPhoto):', err);
+      return { success: false, message: err.message };
+    }
+  },
+
   async deleteProduct(id, permanent = false) {
     try {
       const url = permanent ? `${API_BASE}/products/${id}?permanent=true` : `${API_BASE}/products/${id}`;

@@ -2534,8 +2534,9 @@ export function FlourStudioView({
         </section>
 
         {/* Comprehensive SEO & Local Business Footer */}
-        <footer className="mt-12 pt-10 pb-20 border-t border-gray-200 dark:border-[#2E2A20] text-gray-700 dark:text-[#C5BAA5] space-y-8 font-sans">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-xs">
+        <footer className="mt-8 md:mt-12 pt-6 md:pt-10 pb-24 md:pb-20 border-t border-gray-200 dark:border-[#2E2A20] text-gray-700 dark:text-[#C5BAA5] space-y-6 md:space-y-8 font-sans">
+          {/* Desktop & Tablet View: Full 4-Column Directory (Hidden on mobile) */}
+          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-xs">
             {/* Column 1: Brand & Chakki Info */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
@@ -2666,13 +2667,20 @@ export function FlourStudioView({
             </div>
           </div>
 
-          {/* Footer Bottom Bar */}
-          <div className="pt-6 border-t border-gray-200/80 dark:border-[#2E2A20] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-gray-500 dark:text-[#8B826F]">
+          {/* Desktop & Tablet View: Footer Bottom Bar (Hidden on mobile) */}
+          <div className="hidden md:flex pt-6 border-t border-gray-200/80 dark:border-[#2E2A20] flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-gray-500 dark:text-[#8B826F]">
             <p>
               © {new Date().getFullYear()} <strong className="text-gray-700 dark:text-[#D0C5AF]">Arogya Bhog</strong>. All rights reserved. Milled fresh in Kanpur, UP.
             </p>
             <p className="text-[10px] text-center sm:text-right max-w-md">
               Arogya Bhog flours are authentic nutritional foods, not medical cures or treatments.
+            </p>
+          </div>
+
+          {/* Mobile Screen Only View: Shows ONLY copyright & city */}
+          <div className="md:hidden text-center text-xs text-gray-500 dark:text-[#8B826F] py-2">
+            <p>
+              © 2026 <strong className="text-gray-700 dark:text-[#D0C5AF]">Arogya Bhog</strong>. All rights reserved. Milled fresh in Kanpur, UP.
             </p>
           </div>
         </footer>
