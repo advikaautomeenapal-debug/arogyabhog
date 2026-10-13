@@ -43,7 +43,7 @@ export function Header({
           <div className="flex flex-col justify-center min-w-0">
             <div className="flex items-center space-x-1 sm:space-x-1.5">
               <h2 
-                className="text-2xl sm:text-3xl md:text-4xl font-normal italic text-[#D4AF70] m-0 leading-none truncate select-none"
+                className="text-xl sm:text-2xl md:text-4xl font-normal italic text-[#D4AF70] m-0 leading-none whitespace-nowrap select-none"
                 style={{
                   fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
                   textShadow: '1px 1px 2px #5C4525'
@@ -128,17 +128,16 @@ export function Header({
             )}
           </button>
 
-          {/* INSTALL AROGYA BHOG APP (Always visible in top navigation unless already installed) */}
-          {!isStandalone && !isInstalled && (
+          {/* INSTALL AROGYA BHOG APP (Prominently visible on mobile size and desktop web browsers) */}
+          {!isStandalone && (
             <button
               onClick={onPromptInstall}
               title="Install Arogya Bhog App on this device"
               aria-label="Install Arogya Bhog App"
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl border border-[#C9A227]/70 bg-[#C9A227]/15 hover:bg-[#C9A227]/25 text-[#C9A227] text-xs font-bold uppercase tracking-wider transition-all flex-shrink-0 cursor-pointer shadow-sm active:scale-95"
+              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-[#C9A227] to-amber-500 hover:brightness-105 active:scale-95 text-gray-950 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex-shrink-0 cursor-pointer shadow-md border border-amber-300/60"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Install App</span>
-              <span className="sm:hidden">Install</span>
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Install App</span>
             </button>
           )}
 

@@ -27,7 +27,8 @@ import {
   Bot,
   Search,
   Filter,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { calculateProductNutrition, NUTRIENT_DEFINITIONS, formatNutrientValue } from '../utils/nutritionCalculator';
 import { resolveGrainDoc, canonicalGrainName, normalizeIngredientsMap } from '../utils/grainResolver';
@@ -47,7 +48,9 @@ export function FlourStudioView({
   siteContent,
   activeViewTab,
   onTabChange,
-  onNavigateToAyurvedicAI
+  onNavigateToAyurvedicAI,
+  onPromptInstall,
+  isStandalone
 }) {
   const [activeTab, setActiveTab] = useState(() => {
     if (initialRatios && Object.keys(initialRatios).length > 0) return 'customBlender';
@@ -110,6 +113,7 @@ export function FlourStudioView({
   const [productValidationErrors, setProductValidationErrors] = useState({});
 
   // Educational Knowledge Hub & FAQ Accordion State
+  const [isKnowledgeHubOpen, setIsKnowledgeHubOpen] = useState(false);
   const [expandedArticleId, setExpandedArticleId] = useState(null);
   const [expandedFaqId, setExpandedFaqId] = useState(null);
   const [selectedKnowledgeTab, setSelectedKnowledgeTab] = useState('articles');
@@ -565,10 +569,14 @@ export function FlourStudioView({
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto px-3.5 md:px-6 pt-3 md:pt-5 pb-24 md:pb-10">
+      <div className={`mx-auto pt-3 md:pt-5 pb-24 md:pb-10 transition-all ${
+        activeTab === 'customBlender' 
+          ? 'max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8' 
+          : 'max-w-6xl px-3 sm:px-4 md:px-6'
+      }`}>
         
         {/* VIEW SWITCHER PILLS (Desktop Only; Mobile starts directly with product cards) */}
-        <div className="hidden md:grid grid-cols-2 p-1.5 bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2E2A20] rounded-2xl mb-6 shadow-sm">
+        <div className="hidden md:grid grid-cols-2 p-1.5 bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2E2A20] rounded-2xl mb-6 shadow-sm max-w-xl mx-auto w-full">
           <button
             onClick={() => handleSwitchTab('doctorBlends')}
             className={`py-3 px-4 font-sans text-xs md:text-sm font-bold uppercase tracking-wider rounded-xl flex items-center justify-center space-x-2 transition-all ${
@@ -954,9 +962,9 @@ export function FlourStudioView({
                         </div>
                       </div>
 
-                      {/* Desktop-Only: WHAT'S INSIDE Ingredient Table & Benefits (Hidden on Mobile) */}
-                      <div className={`hidden md:block pt-3 border-t border-gray-200/60 dark:border-[#2E2A20]/80 rounded-xl ${theme.tableBg} p-3.5 border`}>
-                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-200/50 dark:border-[#2E2A20]">
+                      {/* Desktop-Only: WHAT'S INSIDE Ingredient Table & Benefits (Very Light Color) */}
+                      <div className={`hidden md:block pt-3 border-t border-stone-200/60 dark:border-[#2E2A20]/80 rounded-2xl ${theme.tableBg} p-3.5 border`}>
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-200/60 dark:border-[#2E2A20]">
                           <div className="flex items-center space-x-2">
                             <Layers className="w-3.5 h-3.5 text-[#C9A227]" />
                             <h4 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-[#FDFBF7]">
@@ -968,12 +976,12 @@ export function FlourStudioView({
                           </span>
                         </div>
 
-                        {/* Grid of Ingredients with Prominent Percentages */}
+                        {/* Grid of Ingredients with Prominent Percentages - Very Light Color */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                           {recipeGrains.map((grain, idx) => (
                             <div
                               key={idx}
-                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/90 dark:bg-[#151515]/90 border border-gray-200/70 dark:border-[#2E2A20] shadow-2xs transition-colors ${theme.rowTint}`}
+                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#22201C] border border-stone-200/80 dark:border-[#333028] shadow-2xs transition-colors hover:border-[#C9A227]/50 ${theme.rowTint}`}
                             >
                               <span className="text-xs font-semibold text-gray-900 dark:text-[#E8DFC8] truncate pr-1" title={grain.name}>
                                 {grain.name}
@@ -1243,9 +1251,9 @@ export function FlourStudioView({
                     </div>
                   </div>
 
-                  {/* Desktop-Only: 18 Master Grains Studio Info & Highlights */}
-                  <div className="hidden md:block pt-3 border-t border-[#C9A227]/30 rounded-xl bg-amber-50/50 dark:bg-[#1a1710] p-3.5 border border-[#C9A227]/20">
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#C9A227]/20">
+                  {/* Desktop-Only: 18 Master Grains Studio Info & Highlights (Very Light Color) */}
+                  <div className="hidden md:block pt-3 border-t border-stone-200/60 dark:border-[#2E2A20]/80 rounded-2xl bg-stone-50/90 dark:bg-[#1C1A17] p-3.5 border border-stone-200/70 dark:border-[#2E2A20]">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-200/60 dark:border-[#2E2A20]">
                       <div className="flex items-center space-x-2">
                         <Layers className="w-3.5 h-3.5 text-[#C9A227]" />
                         <h4 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-[#FDFBF7]">
@@ -1821,7 +1829,7 @@ export function FlourStudioView({
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2 sm:gap-2.5 md:gap-5 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-4 lg:gap-5">
                   {filteredGrains.map((grain) => {
                     const isPendingPrice = grain.priceStatus === 'pending_configuration' || grain.pricePerKg == null;
                     const currentKg = customIngredients[grain.name] || 0;
@@ -1832,70 +1840,95 @@ export function FlourStudioView({
                     return (
                       <React.Fragment key={grain._id || grain.ingredientId || grain.name}>
                         {/* ========================================================
-                            1. MOBILE-ONLY COMPACT CARD (< 768px)
-                            Full-bleed ingredient photograph background (145-155px height)
+                            1. MOBILE-ONLY PRO-LEVEL ARTISANAL LIGHT CARD (< 768px)
+                            Luminous light canvas with dedicated macro grain window
                             ======================================================== */}
                         <div
-                          className={`md:hidden relative flex flex-col justify-between rounded-2xl overflow-hidden transition-all duration-200 select-none h-[150px] sm:h-[158px] p-2.5 shadow-xs ${
+                          className={`md:hidden relative flex flex-col justify-between rounded-2xl overflow-hidden transition-all duration-200 select-none shadow-xs ${
                             currentKg > 0 
-                              ? 'border-2 border-emerald-400 ring-2 ring-emerald-400/35 shadow-md' 
+                              ? 'bg-amber-50/40 dark:bg-[#1E1B14] border-2 border-[#C9A227] ring-2 ring-[#C9A227]/25 shadow-md' 
                               : isPendingPrice
-                              ? 'border border-amber-400/50 opacity-80'
-                              : 'border border-white/20 hover:border-white/40'
+                              ? 'bg-stone-50/50 dark:bg-[#181612] border border-amber-300/60 opacity-80'
+                              : 'bg-white dark:bg-[#1A1815] border border-stone-200/90 dark:border-[#2E2A20] hover:border-amber-300/80 hover:shadow-md'
                           }`}
-                          style={{
-                            backgroundImage: currentKg > 0
-                              ? `linear-gradient(to top, rgba(6, 78, 59, 0.92) 0%, rgba(0, 0, 0, 0.65) 55%, rgba(0, 0, 0, 0.4) 100%), url(${meta.image || '/ingredients/sharbati-wheat.jpg'})`
-                              : `linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0.35) 100%), url(${meta.image || '/ingredients/sharbati-wheat.jpg'})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center'
-                          }}
                         >
-                          {/* Top Row: Category tag left, Price pill right */}
-                          <div className="flex items-center justify-between gap-1 w-full">
-                            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-white/90 border border-white/20 truncate max-w-[85px]">
-                              {meta.category || grain.category}
-                            </span>
+                          {/* Top: Natural High-Resolution Macro Grain Photo Window */}
+                          <div className="relative aspect-[16/10] w-full overflow-hidden bg-stone-100 dark:bg-stone-900">
+                            <img
+                              src={meta.image}
+                              alt={grain.name}
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/ingredients/sharbati-wheat.jpg';
+                              }}
+                              className="w-full h-full object-cover object-center"
+                            />
 
-                            {isPendingPrice ? (
-                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold backdrop-blur-md bg-amber-600/90 text-white shadow-xs shrink-0 flex items-center space-x-0.5 border border-amber-300/40">
-                                <AlertCircle className="w-2.5 h-2.5" />
-                                <span>Pending</span>
+                            {/* Gentle top vignette so badges stay crisp */}
+                            <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/35 to-transparent pointer-events-none" />
+
+                            {/* Top Row: Category tag left, Price pill right */}
+                            <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1 z-10">
+                              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md bg-white/95 dark:bg-black/75 text-stone-700 dark:text-stone-300 border border-stone-200/70 dark:border-white/10 shadow-2xs truncate max-w-[85px]">
+                                {meta.category || grain.category}
                               </span>
-                            ) : (
-                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-md bg-[#C9A227] text-white shadow-sm border border-amber-200/40 font-mono shrink-0">
-                                ₹{grain.pricePerKg}/k
-                              </span>
-                            )}
-                          </div>
 
-                          {/* Middle: Grain Title & Subtitle + Active Weight Pill or Quick Add Chips */}
-                          <div className="my-auto space-y-0.5">
-                            <h4 className="font-sans font-bold text-xs sm:text-sm text-white tracking-tight drop-shadow-sm truncate">
-                              {grain.name}
-                            </h4>
-
-                            {meta.hindiName && (
-                              <p className="text-[10px] font-medium text-amber-200/95 leading-tight truncate drop-shadow-xs">
-                                {meta.hindiName}
-                              </p>
-                            )}
-
-                            {/* Active Allocation Pill (when weight > 0) */}
-                            {currentKg > 0 ? (
-                              <div className="flex items-center space-x-1 pt-0.5">
-                                <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-emerald-500/95 text-white text-[10px] font-extrabold font-mono shadow-xs">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
-                                  <span>{currentKg} kg</span>
-                                  <span className="text-emerald-100/80 font-normal">({pctOfBlend}%)</span>
+                              {isPendingPrice ? (
+                                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold backdrop-blur-md bg-amber-600 text-white shadow-xs shrink-0 flex items-center space-x-0.5 border border-amber-400/40">
+                                  <AlertCircle className="w-2.5 h-2.5" />
+                                  <span>Pending</span>
                                 </span>
-                                <span className="text-[10px] font-bold text-emerald-200 font-mono drop-shadow-xs">
+                              ) : (
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-md bg-[#C9A227] text-white shadow-sm border border-amber-200/40 font-mono shrink-0">
+                                  ₹{grain.pricePerKg}/k
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Active Allocation Floating Strip on photo when selected */}
+                            {currentKg > 0 && (
+                              <div className="absolute bottom-1.5 inset-x-1.5 z-10 flex items-center justify-between backdrop-blur-md bg-emerald-950/90 border border-emerald-400/60 rounded-lg px-2 py-0.5 text-white shadow-sm">
+                                <div className="flex items-center space-x-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  <span className="text-[10px] font-extrabold text-emerald-200 font-mono">
+                                    {currentKg} kg
+                                  </span>
+                                  <span className="text-[8.5px] text-emerald-300/90 font-normal">
+                                    ({pctOfBlend}%)
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold text-emerald-100 font-mono">
                                   ₹{itemCost}
                                 </span>
                               </div>
+                            )}
+                          </div>
+
+                          {/* Bottom: Crisp Light Porcelain Body with Details & Controls */}
+                          <div className="p-2 sm:p-2.5 flex flex-col justify-between flex-1 gap-2 bg-white dark:bg-[#1A1815]">
+                            {/* Grain Title & Hindi Subtitle */}
+                            <div className="space-y-0.5">
+                              <h4 className="font-sans font-bold text-xs sm:text-sm text-stone-900 dark:text-[#FDFBF7] tracking-tight truncate leading-tight">
+                                {grain.name}
+                              </h4>
+
+                              {meta.hindiName && (
+                                <p className="text-[10px] font-medium text-amber-800 dark:text-[#D4AF37] leading-tight truncate">
+                                  {meta.hindiName}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Middle: Active Allocation Badge or Soft Cream Quick Add Pills */}
+                            {currentKg > 0 ? (
+                              <div className="flex items-center justify-between px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-[9.5px] font-bold font-mono text-emerald-800 dark:text-emerald-300">
+                                <span className="text-[8.5px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-sans font-semibold">Allocated</span>
+                                <span>{currentKg} kg · ₹{itemCost}</span>
+                              </div>
                             ) : (
-                              /* Quick Shortcut chips when unselected */
-                              <div className="flex items-center gap-1 pt-0.5">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[8.5px] uppercase font-bold text-stone-400 dark:text-stone-500 tracking-wider">Quick:</span>
                                 {[1, 2].map((amt) => {
                                   const wouldExceed = (currentTotalWeight + amt) > TARGET_CUSTOM_WEIGHT;
                                   return (
@@ -1904,7 +1937,7 @@ export function FlourStudioView({
                                       type="button"
                                       onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, amt); }}
                                       disabled={wouldExceed}
-                                      className="px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/30 disabled:opacity-20 text-[9px] font-bold text-white transition-all cursor-pointer"
+                                      className="px-1.5 py-0.5 rounded bg-amber-50 hover:bg-amber-100 dark:bg-[#232018] dark:hover:bg-[#2E291C] border border-amber-200/80 dark:border-amber-800/50 text-amber-900 dark:text-amber-300 disabled:opacity-20 text-[9px] font-bold transition-all cursor-pointer active:scale-95"
                                     >
                                       +{amt}k
                                     </button>
@@ -1912,63 +1945,63 @@ export function FlourStudioView({
                                 })}
                               </div>
                             )}
-                          </div>
 
-                          {/* Bottom: Compact Frosted Stepper Controls */}
-                          <div className="w-full">
-                            {isPendingPrice ? (
-                              <div className="py-1 px-1.5 rounded-lg bg-amber-950/70 border border-amber-400/40 text-[9px] text-amber-200 text-center font-medium">
-                                Rate pending admin setup
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between gap-1 w-full bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/20 shadow-inner">
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, Math.max(0, Number((currentKg - 0.5).toFixed(2)))); }}
-                                  disabled={currentKg <= 0}
-                                  className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
-                                  title="Decrease 0.5 kg"
-                                  aria-label={`Decrease ${grain.name}`}
-                                >
-                                  <Minus className="w-3 h-3 stroke-[2.5]" />
-                                </button>
-
-                                <div className="flex items-center justify-center flex-1 min-w-0 px-0.5">
-                                  <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max={TARGET_CUSTOM_WEIGHT}
-                                    value={currentKg || ''}
-                                    placeholder="0 kg"
-                                    onChange={(e) => handleIngredientWeightChange(grain.name, e.target.value)}
-                                    className="w-full text-center font-bold text-xs text-white bg-transparent outline-none font-mono placeholder-white/40"
-                                  />
+                            {/* Stepper Controls in tactile light styling */}
+                            <div className="w-full">
+                              {isPendingPrice ? (
+                                <div className="py-1 px-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-[9px] text-amber-800 dark:text-amber-300 text-center font-medium">
+                                  Rate pending setup
                                 </div>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, Number((currentKg + 0.5).toFixed(2))); }}
-                                  disabled={currentTotalWeight >= TARGET_CUSTOM_WEIGHT && currentKg === 0}
-                                  className="w-7 h-7 rounded-lg bg-[#C9A227] hover:bg-[#B58F1E] active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-xs cursor-pointer font-bold shrink-0"
-                                  title="Increase 0.5 kg"
-                                  aria-label={`Increase ${grain.name}`}
-                                >
-                                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                </button>
-
-                                {currentKg > 0 && (
+                              ) : (
+                                <div className="flex items-center justify-between gap-1 w-full bg-stone-50 dark:bg-[#201D17] p-1 rounded-xl border border-stone-200/90 dark:border-[#2E2A20] shadow-2xs">
                                   <button
                                     type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleRemoveIngredient(grain.name); }}
-                                    className="w-6 h-7 rounded-lg text-rose-300 hover:text-white hover:bg-rose-900/60 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                                    title={`Remove ${grain.name}`}
+                                    onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, Math.max(0, Number((currentKg - 0.5).toFixed(2)))); }}
+                                    disabled={currentKg <= 0}
+                                    className="w-7 h-7 rounded-lg bg-white dark:bg-[#161411] hover:bg-stone-100 dark:hover:bg-[#28241E] active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed text-stone-800 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700/60 flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
+                                    title="Decrease 0.5 kg"
+                                    aria-label={`Decrease ${grain.name}`}
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Minus className="w-3 h-3 stroke-[2.5]" />
                                   </button>
-                                )}
-                              </div>
-                            )}
+
+                                  <div className="flex items-center justify-center flex-1 min-w-0 px-0.5">
+                                    <input
+                                      type="number"
+                                      step="0.1"
+                                      min="0"
+                                      max={TARGET_CUSTOM_WEIGHT}
+                                      value={currentKg || ''}
+                                      placeholder="0 kg"
+                                      onChange={(e) => handleIngredientWeightChange(grain.name, e.target.value)}
+                                      className="w-full text-center font-bold text-xs text-stone-900 dark:text-stone-100 bg-transparent outline-none font-mono placeholder-stone-400"
+                                    />
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleIngredientWeightChange(grain.name, Number((currentKg + 0.5).toFixed(2))); }}
+                                    disabled={currentTotalWeight >= TARGET_CUSTOM_WEIGHT && currentKg === 0}
+                                    className="w-7 h-7 rounded-lg bg-gradient-to-r from-amber-400 via-[#C9A227] to-amber-500 hover:brightness-105 active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed text-stone-950 flex items-center justify-center transition-all shadow-xs cursor-pointer font-bold shrink-0"
+                                    title="Increase 0.5 kg"
+                                    aria-label={`Increase ${grain.name}`}
+                                  >
+                                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                  </button>
+
+                                  {currentKg > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); handleRemoveIngredient(grain.name); }}
+                                      className="w-6 h-7 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                                      title={`Remove ${grain.name}`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -2240,7 +2273,7 @@ export function FlourStudioView({
             and Mandatory Health-Claim Safeguards
             ======================================================== */}
         <section aria-label="Arogya Bhog Nutrition and Atta Knowledge Hub" className="mt-12 pt-8 border-t border-gray-200 dark:border-[#2E2A20] space-y-6">
-          <div className="text-center max-w-2xl mx-auto space-y-2">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-caps text-[#C9A227] px-3 py-1 rounded-full bg-amber-50 dark:bg-[#1A1A1A] border border-[#C9A227]/40 inline-block">
               Knowledge Hub & Dietary Transparency
             </span>
@@ -2250,7 +2283,34 @@ export function FlourStudioView({
             <p className="font-sans text-xs sm:text-sm text-gray-600 dark:text-[#99907C] leading-relaxed">
               At <strong>Arogya Bhog</strong>, we believe in honest nourishment and total ingredient transparency. Explore verified grain profiles, nutritional science, and practical dietary guidance for everyday family well-being.
             </p>
+
+            {/* Click-to-open dropdown button */}
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setIsKnowledgeHubOpen((prev) => !prev)}
+                aria-expanded={isKnowledgeHubOpen}
+                aria-controls="arogya-knowledge-hub-content"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider bg-white dark:bg-[#1E1B15] text-[#C9A227] hover:text-[#B58F1E] border-2 border-[#C9A227]/70 hover:border-[#C9A227] shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98"
+              >
+                <BookOpen className="w-4 h-4 text-[#C9A227]" />
+                <span>{isKnowledgeHubOpen ? 'Hide Nutrition Guides & FAQs' : 'Explore Nutrition Guides & FAQs (17)'}</span>
+                {isKnowledgeHubOpen ? (
+                  <ChevronUp className="w-4 h-4 stroke-[2.5]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Collapsible Content Wrapper: Keeping fully accessible in DOM for SEO */}
+          <div
+            id="arogya-knowledge-hub-content"
+            className={`transition-all duration-300 ${
+              isKnowledgeHubOpen ? 'block space-y-6 animate-fadeIn' : 'hidden'
+            }`}
+          >
 
           {/* Knowledge Switcher Tabs: Guides vs FAQs */}
           <div className="flex justify-center">
@@ -2449,6 +2509,7 @@ export function FlourStudioView({
               <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Buy Atta Online</span>
               <span className="px-2.5 py-1 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#2E2A20] rounded-lg">Fresh Stone Chakki Atta</span>
             </div>
+          </div>
           </div>
         </section>
 

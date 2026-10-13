@@ -352,9 +352,9 @@ export function ProductDetailView({
 
       </div>
 
-      {/* Verified Exact Grain Composition (Database Driven) */}
-      <section className="p-5 sm:p-6 bg-white dark:bg-[#181818] border border-gray-200 dark:border-[#2E2A20] rounded-2xl space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2E2A20] pb-3">
+      {/* Verified Exact Grain Composition (Database Driven) - Very Light Color */}
+      <section className="p-5 sm:p-6 bg-stone-50/70 dark:bg-[#181818] border border-stone-200/80 dark:border-[#2E2A20] rounded-2xl space-y-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-stone-200/60 dark:border-[#2E2A20] pb-3">
           <div>
             <h2 className="font-editorial text-lg sm:text-xl font-bold text-gray-900 dark:text-[#FDFBF7]">
               Exact Grain & Seed Composition
@@ -363,7 +363,7 @@ export function ProductDetailView({
               100% transparent recipe breakdown. Verified whole grains and unadulterated seeds.
             </p>
           </div>
-          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700">
+          <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700">
             Natural Whole Grains
           </span>
         </div>
@@ -372,7 +372,7 @@ export function ProductDetailView({
           {seoData.ingredients.map((ing, idx) => (
             <div 
               key={idx}
-              className="p-3 sm:p-3.5 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#2E2A20] space-y-1.5"
+              className="p-3 sm:p-3.5 rounded-xl bg-white dark:bg-[#141414] border border-stone-200/80 dark:border-[#2E2A20] space-y-1.5 shadow-2xs"
             >
               <div className="flex justify-between items-center text-xs sm:text-sm font-black text-gray-900 dark:text-[#FDFBF7]">
                 <span>{ing.name}</span>

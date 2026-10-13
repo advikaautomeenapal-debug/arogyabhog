@@ -524,6 +524,8 @@ export function App() {
               activeViewTab={currentTab === 'customBlend' ? 'customBlender' : 'doctorBlends'}
               onTabChange={(viewTab) => setCurrentTab(viewTab === 'customBlender' ? 'customBlend' : 'flourStudio')}
               onNavigateToAyurvedicAI={() => setCurrentTab('ayurvedicAI')}
+              onPromptInstall={promptInstall}
+              isStandalone={isStandalone}
             />
           )
         )}
