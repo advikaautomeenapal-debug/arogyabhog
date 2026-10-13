@@ -9,11 +9,11 @@
  * 4. Stale-free updates with clean cache cleanup on activate.
  */
 
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.0.1';
 const STATIC_CACHE_NAME = `arogyabhog-static-${CACHE_VERSION}`;
 const IMAGE_CACHE_NAME = `arogyabhog-images-${CACHE_VERSION}`;
 
-// Pre-cached core application shell assets
+// Pre-cached core application shell and primary product assets
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -23,7 +23,12 @@ const PRECACHE_ASSETS = [
   '/logo.png',
   '/icon-192x192.png',
   '/icon-512x512.png',
-  '/apple-touch-icon.png'
+  '/apple-touch-icon.png',
+  '/variants/everyday-soft-multigrain-atta.jpg',
+  '/variants/sugar-care-atta.jpg',
+  '/variants/thyro-care-atta.jpg',
+  '/variants/high-protein-atta.jpg',
+  '/variants/vitality-atta.jpg'
 ];
 
 // Install: Pre-cache static shell assets safely
@@ -124,13 +129,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static Images (Product variant pictures, brand logo, icons)
+  // 4. Static Images (Product variant pictures, ingredients, brand logo, icons)
   if (
     request.destination === 'image' ||
     url.pathname.startsWith('/variants/') ||
+    url.pathname.startsWith('/ingredients/') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.jpeg') ||
     url.pathname.endsWith('.webp') ||
+    url.pathname.endsWith('.avif') ||
     url.pathname.endsWith('.svg')
   ) {
     event.respondWith(

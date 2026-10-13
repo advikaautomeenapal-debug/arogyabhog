@@ -22,6 +22,22 @@ import { usePWA } from './utils/usePWA';
 import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { IOSInstallModal } from './components/IOSInstallModal';
+import { PRODUCT_SEO_CATALOG } from './utils/productSeoData';
+
+// Instant initial products catalog from verified data for 0ms First-Contentful-Paint
+const INITIAL_PRODUCTS = Object.values(PRODUCT_SEO_CATALOG).map(p => ({
+  _id: p.productId,
+  productId: p.productId,
+  name: p.name,
+  slug: p.slug,
+  sellingPrice: p.sellingPrice,
+  mrpPrice: p.mrpPrice,
+  badge: p.badge,
+  imageUrl: p.imageUrl,
+  ingredients: p.ingredients,
+  tagline: p.tagline,
+  availablePackSizes: p.availablePackSizes || [5, 10]
+}));
 
 export function App() {
   // Theme State: Default to 'light' as strictly required
@@ -206,8 +222,8 @@ export function App() {
     }
   };
 
-  // Data states
-  const [products, setProducts] = useState([]);
+  // Data states: Pre-seeded with verified catalog for 0ms instant card rendering
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [grains, setGrains] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

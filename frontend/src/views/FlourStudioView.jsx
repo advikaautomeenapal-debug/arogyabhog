@@ -632,7 +632,7 @@ export function FlourStudioView({
             </div>
 
             <div className="space-y-3.5 md:space-y-4">
-              {customerProducts.map((product) => {
+              {customerProducts.map((product, index) => {
                 const selectedSize = packSizes[product._id]; // null if not selected yet
                 const currentPack = selectedSize || 5;
                 const packPrice = Math.round(product.sellingPrice * currentPack);
@@ -668,14 +668,16 @@ export function FlourStudioView({
                     key={product._id}
                     className={`relative overflow-hidden rounded-2xl border ${theme.cardBorder} bg-white dark:bg-[#181818] shadow-sm hover:shadow-xl transition-all duration-300 group`}
                   >
-                    {/* Realistic Ingredient-Inspired Background with Atmospheric Dusting & Scrim */}
-                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                    {/* Realistic Ingredient-Inspired Background (Desktop Only, saves 50% image requests on mobile) */}
+                    <div className="hidden md:block absolute inset-0 z-0 pointer-events-none overflow-hidden">
                       <img
                         src={theme.bgImage}
-                        alt={product.name}
+                        alt=""
+                        aria-hidden="true"
                         className="w-full h-full object-cover object-right md:object-center opacity-30 dark:opacity-20 transition-transform duration-700 group-hover:scale-105"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         loading="lazy"
+                        decoding="async"
                       />
                       {/* High-contrast multi-stop scrim ensuring 100% text readability */}
                       <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/75 dark:from-[#181818]/95 dark:via-[#181818]/90 dark:to-[#181818]/75" />
@@ -707,6 +709,11 @@ export function FlourStudioView({
                             src={product.imageUrl || `/variants/${slug}.jpg`}
                             alt={product.name}
                             className="w-full h-full object-cover object-center"
+                            width="105"
+                            height="131"
+                            decoding="async"
+                            loading={index < 2 ? "eager" : "lazy"}
+                            fetchPriority={index < 2 ? "high" : "auto"}
                             onError={(e) => { 
                               if (theme.bgImage) {
                                 e.currentTarget.src = theme.bgImage;
@@ -714,7 +721,6 @@ export function FlourStudioView({
                                 e.currentTarget.src = '/arogyaBhog_logo.png';
                               }
                             }}
-                            loading="lazy"
                           />
                           {discountPercent > 0 && (
                             <span className="absolute top-1 left-1 text-[8px] font-black bg-emerald-600 text-white px-1 py-0.2 rounded shadow-2xs leading-tight">
@@ -873,8 +879,12 @@ export function FlourStudioView({
                             src={product.imageUrl || `/variants/${slug}.jpg`}
                             alt={product.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
+                            width="160"
+                            height="160"
+                            decoding="async"
+                            loading={index < 2 ? "eager" : "lazy"}
+                            fetchPriority={index < 2 ? "high" : "auto"}
                             onError={(e) => { e.currentTarget.src = '/arogyaBhog_logo.png'; }}
-                            loading="lazy"
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/15 transition-colors flex items-end justify-center pb-1.5">
                             <span className="opacity-0 group-hover/img:opacity-100 transition-opacity text-[9px] font-bold text-white bg-black/70 px-2 py-0.5 rounded backdrop-blur-xs">
@@ -1077,6 +1087,7 @@ export function FlourStudioView({
                     className="w-full h-full object-cover object-right md:object-center opacity-30 dark:opacity-20 transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-500/15 via-white/90 to-white/75 dark:from-[#1c1a14]/95 dark:via-[#1c1a14]/90 dark:to-[#181818]/75" />
                   <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-white/40 dark:from-[#181818]/90 dark:via-transparent dark:to-[#181818]/40" />
@@ -1198,6 +1209,9 @@ export function FlourStudioView({
                         src="/variants/my-choice-atta.jpg"
                         alt="My Choice Atta"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
+                        width="160"
+                        height="160"
+                        decoding="async"
                         onError={(e) => { e.currentTarget.src = '/arogyaBhog_logo.png'; }}
                         loading="lazy"
                       />
@@ -1858,6 +1872,9 @@ export function FlourStudioView({
                               src={meta.image}
                               alt={grain.name}
                               loading="lazy"
+                              decoding="async"
+                              width="200"
+                              height="125"
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = '/ingredients/sharbati-wheat.jpg';
@@ -2024,6 +2041,9 @@ export function FlourStudioView({
                               src={meta.image}
                               alt={grain.name}
                               loading="lazy"
+                              decoding="async"
+                              width="320"
+                              height="200"
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = '/ingredients/sharbati-wheat.jpg';

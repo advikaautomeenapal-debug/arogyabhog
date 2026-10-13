@@ -245,6 +245,10 @@ export function ProductDetailView({
               src={backendProduct?.imageUrl || product.imageUrl || seoData.imageUrl} 
               alt={seoData.imageAlt}
               className="w-full h-full object-cover object-center"
+              width="500"
+              height="500"
+              decoding="async"
+              fetchPriority="high"
               onError={(e) => { e.currentTarget.src = seoData.imageUrl || "/arogyaBhog_logo.png"; }}
               loading="eager"
             />
