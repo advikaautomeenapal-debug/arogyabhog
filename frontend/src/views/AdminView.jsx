@@ -267,6 +267,14 @@ export function AdminView({
       { name: 'Whole Wheat', percentage: 15 },
       { name: 'Flax Seeds (Alsi)', percentage: 10 },
       { name: 'Pumpkin Seeds', percentage: 5 }
+    ],
+    safeGrains: [
+      { name: 'Kodo Millet', percentage: 25 },
+      { name: 'Jau/Barley', percentage: 25 },
+      { name: 'Roasted Chana', percentage: 20 },
+      { name: 'Whole Wheat', percentage: 15 },
+      { name: 'Flax Seeds (Alsi)', percentage: 10 },
+      { name: 'Pumpkin Seeds', percentage: 5 }
     ]
   });
 
@@ -345,7 +353,8 @@ export function AdminView({
     ? Math.round(((formData.mrpPrice - formData.sellingPrice) / formData.mrpPrice) * 100) 
     : 0;
 
-  const formulationTotal = formData.grains.reduce((acc, g) => acc + (Number(g.percentage) || 0), 0);
+  const skuGrains = formData.safeGrains || formData.grains || [];
+  const formulationTotal = skuGrains.reduce((acc, g) => acc + (Number(g.percentage) || 0), 0);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -356,20 +365,26 @@ export function AdminView({
   };
 
   const handleGrainRatioChange = (index, newPct) => {
-    const updated = [...formData.grains];
-    updated[index].percentage = Number(newPct);
-    setFormData({ ...formData, grains: updated });
+    const currentGrains = [...(formData.safeGrains || formData.grains || [])];
+    if (currentGrains[index]) {
+      currentGrains[index] = { ...currentGrains[index], percentage: Number(newPct) };
+    }
+    setFormData({ ...formData, grains: currentGrains, safeGrains: currentGrains });
   };
 
   const handleRemoveGrainFromSku = (index) => {
-    const updated = formData.safeGrains.filter((_, i) => i !== index);
-    setFormData({ ...formData, grains: updated });
+    const currentGrains = formData.safeGrains || formData.grains || [];
+    const updated = currentGrains.filter((_, i) => i !== index);
+    setFormData({ ...formData, grains: updated, safeGrains: updated });
   };
 
   const handleAddGrainToSku = () => {
+    const currentGrains = formData.safeGrains || formData.grains || [];
+    const updated = [...currentGrains, { name: 'Jowar', percentage: 10 }];
     setFormData({
       ...formData,
-      grains: [...formData.grains, { name: 'Jowar', percentage: 10 }]
+      grains: updated,
+      safeGrains: updated
     });
   };
 
@@ -3350,7 +3365,7 @@ export function AdminView({
               </div>
 
               <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20]">
-                {formData.safeGrains.map((g, idx) => (
+                {(formData.safeGrains || formData.grains || []).map((g, idx) => (
                   <div 
                     key={idx} 
                     className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2e2a20] shadow-sm"

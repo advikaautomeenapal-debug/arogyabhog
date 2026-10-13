@@ -64,9 +64,31 @@ const calculateItemNutritionSnapshot = (grainBreakdown, batchSizeKg, quantity, g
 };
 
 const generateOrderNumber = async () => {
-  const count = await Order.countDocuments();
-  const baseNum = 8492 + count;
-  return `#AB-${baseNum}`;
+  // Find the highest existing order number
+  const latestOrders = await Order.find({}, { orderNumber: 1 }).sort({ createdAt: -1 }).limit(50);
+  let maxNum = 8492;
+  for (const o of latestOrders) {
+    if (o.orderNumber) {
+      const match = o.orderNumber.match(/\d+/);
+      if (match) {
+        const num = parseInt(match[0], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+  }
+
+  let nextNum = maxNum + 1;
+  let candidate = `#AB-${nextNum}`;
+
+  // Guarantee absolute uniqueness across all orders
+  while (await Order.exists({ orderNumber: candidate })) {
+    nextNum++;
+    candidate = `#AB-${nextNum}`;
+  }
+
+  return candidate;
 };
 
 // Helper function: Automatic fair allocation of order to available delivery personnel
@@ -984,14 +1006,27 @@ router.post('/', async (req, res) => {
     }
 
     let savedOrder = null;
-    try {
-      const newOrder = new Order(orderData);
-      
-      if (serviceability.serviceable) {
-        await autoAllocateDeliveryPerson(newOrder);
-      }
+    let saveAttempts = 0;
+    while (saveAttempts < 3) {
+      try {
+        saveAttempts++;
+        const newOrder = new Order(orderData);
+        
+        if (serviceability.serviceable) {
+          await autoAllocateDeliveryPerson(newOrder);
+        }
 
-      savedOrder = await newOrder.save();
+        savedOrder = await newOrder.save();
+        break;
+      } catch (err) {
+        if (err.code === 11000 && saveAttempts < 3) {
+          // Concurrency collision on orderNumber - regenerate fresh number and retry
+          orderData.orderNumber = await generateOrderNumber();
+          continue;
+        }
+        throw err;
+      }
+    }
 
       // Trigger automated email notification to arogyabhog@gmail.com
       sendOrderNotificationEmail(savedOrder).catch(mailErr => {

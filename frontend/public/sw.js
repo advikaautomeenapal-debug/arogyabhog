@@ -9,7 +9,7 @@
  * 4. Stale-free updates with clean cache cleanup on activate.
  */
 
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.0.2';
 const STATIC_CACHE_NAME = `arogyabhog-static-${CACHE_VERSION}`;
 const IMAGE_CACHE_NAME = `arogyabhog-images-${CACHE_VERSION}`;
 
@@ -28,7 +28,8 @@ const PRECACHE_ASSETS = [
   '/variants/sugar-care-atta.jpg',
   '/variants/thyro-care-atta.jpg',
   '/variants/high-protein-atta.jpg',
-  '/variants/vitality-atta.jpg'
+  '/variants/vitality-atta.jpg',
+  '/variants/my-choice-atta.jpg'
 ];
 
 // Install: Pre-cache static shell assets safely

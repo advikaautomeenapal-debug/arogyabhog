@@ -271,10 +271,14 @@ export const api = {
     }
   },
 
-  // PRODUCTS
-  async getProducts(category) {
+  async getProducts(category, includeInactive = false) {
     try {
-      const url = category ? `${API_BASE}/products?category=${category}` : `${API_BASE}/products`;
+      let url = `${API_BASE}/products`;
+      const params = new URLSearchParams();
+      if (category) params.append('category', category);
+      if (includeInactive) params.append('includeInactive', 'true');
+      const qs = params.toString();
+      if (qs) url += `?${qs}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch products');
       return await res.json();

@@ -287,8 +287,9 @@ export function App() {
   const loadInitialData = async () => {
     setIsLoading(true);
     try {
+      const isUserAdmin = panelContext === 'admin' || isAdmin || user?.role === 'admin';
       const [prodRes, grainRes, orderRes, opRes, siteRes] = await Promise.all([
-        api.getProducts(),
+        api.getProducts(null, isUserAdmin),
         api.getGrains(),
         api.getOrders(),
         api.getOperationalCosts(),
@@ -319,7 +320,34 @@ export function App() {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [panelContext, isAdmin, user?.role]);
+
+  // Sanitize cart items: ensure valid product IDs and synchronized live photos across devices
+  useEffect(() => {
+    if (products && products.length > 0 && cart && cart.length > 0) {
+      let changed = false;
+      const sanitized = cart.map(item => {
+        if (!item.isCustom) {
+          const liveProd = products.find(p => p._id === item.productId || p.productId === item.productId || p.name === item.name);
+          if (liveProd) {
+            const liveImg = liveProd.imageUrl || item.image;
+            if (item.productId !== liveProd._id || (liveProd.imageUrl && item.image !== liveProd.imageUrl)) {
+              changed = true;
+              return {
+                ...item,
+                productId: liveProd._id,
+                image: liveImg
+              };
+            }
+          }
+        }
+        return item;
+      });
+      if (changed) {
+        setCart(sanitized);
+      }
+    }
+  }, [products]);
 
   // Auth handlers
   const handleLoginSuccess = (loggedInUser) => {
