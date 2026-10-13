@@ -1006,27 +1006,28 @@ router.post('/', async (req, res) => {
     }
 
     let savedOrder = null;
-    let saveAttempts = 0;
-    while (saveAttempts < 3) {
-      try {
-        saveAttempts++;
-        const newOrder = new Order(orderData);
-        
-        if (serviceability.serviceable) {
-          await autoAllocateDeliveryPerson(newOrder);
-        }
+    try {
+      let saveAttempts = 0;
+      while (saveAttempts < 3) {
+        try {
+          saveAttempts++;
+          const newOrder = new Order(orderData);
+          
+          if (serviceability.serviceable) {
+            await autoAllocateDeliveryPerson(newOrder);
+          }
 
-        savedOrder = await newOrder.save();
-        break;
-      } catch (err) {
-        if (err.code === 11000 && saveAttempts < 3) {
-          // Concurrency collision on orderNumber - regenerate fresh number and retry
-          orderData.orderNumber = await generateOrderNumber();
-          continue;
+          savedOrder = await newOrder.save();
+          break;
+        } catch (err) {
+          if (err.code === 11000 && saveAttempts < 3) {
+            // Concurrency collision on orderNumber - regenerate fresh number and retry
+            orderData.orderNumber = await generateOrderNumber();
+            continue;
+          }
+          throw err;
         }
-        throw err;
       }
-    }
 
       // Trigger automated email notification to arogyabhog@gmail.com
       sendOrderNotificationEmail(savedOrder).catch(mailErr => {
