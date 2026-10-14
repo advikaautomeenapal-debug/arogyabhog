@@ -12,6 +12,7 @@ const { evaluateServiceability } = require('./deliveryAreaRoutes');
 const { resolveGrainDoc } = require('../utils/grainResolver');
 const { normalizePhone } = require('../utils/phoneHelper');
 const { sendOrderNotificationEmail } = require('../utils/emailNotifier');
+const { sendOrderWhatsAppNotification, formatOrderWhatsAppConfirmation, buildWhatsAppClickUrl } = require('../utils/whatsappNotifier');
 
 // Calculate 16 nutrients for an item's confirmed grain breakdown
 const calculateItemNutritionSnapshot = (grainBreakdown, batchSizeKg, quantity, grainMap, allGrains) => {
@@ -415,6 +416,36 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
     res.json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/orders/:id/whatsapp (Pre-formatted WhatsApp confirmation message and direct click URL)
+router.get('/:id/whatsapp', optionalAuth, async (req, res) => {
+  try {
+    let order;
+    if (req.params.id.startsWith('#AB-')) {
+      order = await Order.findOne({ orderNumber: req.params.id });
+    } else {
+      order = await Order.findById(req.params.id);
+    }
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const phone = order.customerContact || order.customerPhone;
+    const message = formatOrderWhatsAppConfirmation(order);
+    const whatsappUrl = buildWhatsAppClickUrl(phone, message);
+
+    res.json({
+      success: true,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerPhone: phone,
+      whatsappUrl,
+      message
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1032,6 +1063,11 @@ router.post('/', async (req, res) => {
       // Trigger automated email notification to arogyabhog@gmail.com
       sendOrderNotificationEmail(savedOrder).catch(mailErr => {
         console.error('[Email Notification Error]:', mailErr.message);
+      });
+
+      // Trigger automated WhatsApp confirmation / click-to-chat preparation
+      sendOrderWhatsAppNotification(savedOrder).catch(waErr => {
+        console.error('[WhatsApp Notification Error]:', waErr.message);
       });
 
       // Record coupon redemption if a coupon was applied

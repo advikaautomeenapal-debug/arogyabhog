@@ -766,6 +766,28 @@ export function CheckoutView({
           </div>
         </div>
 
+        {/* Instant WhatsApp Order Notification / Confirmation Button */}
+        <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-left space-y-2">
+          <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+            <MessageCircle className="w-4 h-4 fill-current text-emerald-600 dark:text-emerald-400" />
+            <span>Instant WhatsApp Order Updates</span>
+          </div>
+          <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
+            Click below to connect with our chakki admin on WhatsApp for live stone-milling updates and fast priority delivery.
+          </p>
+          <a
+            href={`https://wa.me/919621496772?text=${encodeURIComponent(
+              `Namaste Arogya Bhog! 🙏\n\nI have just placed an order on arogyabhog.com:\n\n• Order No: ${orderConfirmed.orderNumber}\n• Name: ${orderConfirmed.customerName}\n• Mobile: ${orderConfirmed.customerContact || orderConfirmed.customerPhone}\n• Total Amount: ₹${orderConfirmed.totalAmount} (COD)\n• Delivery: ${orderConfirmed.customerAddress}, ${orderConfirmed.customerCity}\n\nPlease confirm my order and start fresh stone-milling. Thank you!`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-sm transition-all"
+          >
+            <MessageCircle className="w-4 h-4 fill-current" />
+            <span>Confirm Order on Admin WhatsApp</span>
+          </a>
+        </div>
+
         <div className="space-y-2 pt-2">
           <button
             onClick={() => onNavigateToOrders ? onNavigateToOrders() : onBackToStudio()}

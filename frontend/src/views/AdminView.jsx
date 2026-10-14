@@ -47,6 +47,7 @@ import {
   Settings,
   Tag,
   Camera,
+  MessageCircle,
   Image as ImageIcon
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -58,6 +59,7 @@ import { AdminPasswordResetSection } from '../components/AdminPasswordResetSecti
 import { AdminCouponsSection } from '../components/AdminCouponsSection';
 import { AdminChakkiPincodesSection } from '../components/AdminChakkiPincodesSection';
 import { AdminArticlesSection } from '../components/AdminArticlesSection';
+import { AdminWhatsAppModal } from '../components/AdminWhatsAppModal';
 
 export function AdminView({ 
   products = [], 
@@ -138,6 +140,7 @@ export function AdminView({
   const [allOrders, setAllOrders] = useState([]);
   const [queueOrders, setQueueOrders] = useState([]);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+  const [whatsAppModalOrder, setWhatsAppModalOrder] = useState(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Delivery Areas & Site Content State
@@ -2540,6 +2543,17 @@ export function AdminView({
                                 <FileSpreadsheet className="w-3.5 h-3.5" />
                               </button>
 
+                              {/* WhatsApp Order Confirmation & Chat */}
+                              <button
+                                type="button"
+                                onClick={() => setWhatsAppModalOrder(order)}
+                                className="py-1.5 px-2.5 rounded-xl border border-emerald-500/60 hover:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center space-x-1 transition-all shadow-sm group"
+                                title="Send WhatsApp order confirmation & chat"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 fill-current text-emerald-600 dark:text-emerald-400" />
+                                <span>WhatsApp</span>
+                              </button>
+
                               {/* Full Details Modal Button */}
                               <button
                                 onClick={() => setSelectedOrderDetail(order)}
@@ -2699,6 +2713,16 @@ export function AdminView({
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>Detail</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setWhatsAppModalOrder(order)}
+                          className="py-2 px-2.5 rounded-xl border border-emerald-500/60 hover:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center space-x-1 transition-all shadow-sm"
+                          title="Send WhatsApp confirmation to customer"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 fill-current text-emerald-600 dark:text-emerald-400" />
+                          <span>WhatsApp</span>
                         </button>
 
                         <div className="flex items-center space-x-1">
@@ -2906,6 +2930,14 @@ export function AdminView({
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           <div className="flex items-center justify-end space-x-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setWhatsAppModalOrder(o)}
+                              className="p-1 rounded-lg border border-emerald-300 dark:border-emerald-800 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all"
+                              title="Send WhatsApp confirmation & chat"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => setSelectedOrderDetail(o)}
@@ -5140,10 +5172,21 @@ export function AdminView({
                   <p className="font-bold text-sm text-gray-900 dark:text-[#fdfbf7]">
                     {selectedOrderDetail.customerName}
                   </p>
-                  <p className="text-[#C9A227] font-mono font-bold flex items-center space-x-1">
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>{selectedOrderDetail.customerContact || selectedOrderDetail.customerPhone}</span>
-                  </p>
+                  <div className="flex items-center space-x-2 pt-0.5">
+                    <p className="text-[#C9A227] font-mono font-bold flex items-center space-x-1">
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>{selectedOrderDetail.customerContact || selectedOrderDetail.customerPhone}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsAppModalOrder(selectedOrderDetail)}
+                      className="py-0.5 px-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[10px] flex items-center space-x-1 transition-all"
+                      title="Open WhatsApp chat with customer"
+                    >
+                      <MessageCircle className="w-3 h-3 fill-current text-emerald-600 dark:text-emerald-400" />
+                      <span>Chat on WhatsApp</span>
+                    </button>
+                  </div>
                   <p className="text-gray-500 dark:text-[#8b826f]">
                     Email: <span className="text-gray-800 dark:text-[#d0c5af]">{selectedOrderDetail.customerEmail || '—'}</span>
                   </p>
@@ -5864,6 +5907,16 @@ export function AdminView({
                     <span>Cancel Order</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setWhatsAppModalOrder(selectedOrderDetail)}
+                  className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-md group"
+                  title="Send WhatsApp confirmation directly to customer"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>Send WhatsApp</span>
+                </button>
 
                 <button
                   type="button"
@@ -7882,6 +7935,15 @@ export function AdminView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* WhatsApp Order Dispatch & Confirmation Modal */}
+      {whatsAppModalOrder && (
+        <AdminWhatsAppModal
+          order={whatsAppModalOrder}
+          onClose={() => setWhatsAppModalOrder(null)}
+          onUpdateStatus={handleUpdateOrderStatus}
+        />
       )}
 
     </div>
