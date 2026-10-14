@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Truck, Lock, Phone, ArrowRight, ArrowLeft, AlertCircle, ShieldCheck, Store, Shield } from 'lucide-react';
+import { Truck, Lock, Phone, ArrowRight, ArrowLeft, AlertCircle, ShieldCheck, Store, Shield, Download } from 'lucide-react';
 import { api } from '../services/api';
 import { getPanelUrl } from '../utils/domainConfig';
 
-export function DeliveryLoginView({ onLoginSuccess }) {
-  const [identifier, setIdentifier] = useState('delivery.ramesh@arogyabhog.com');
+export function DeliveryLoginView({ onLoginSuccess, isStandalone = false, onPromptInstall = null }) {
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -64,6 +64,17 @@ export function DeliveryLoginView({ onLoginSuccess }) {
         </div>
 
         <div className="flex items-center space-x-3 text-xs">
+          {!isStandalone && onPromptInstall && (
+            <button
+              onClick={onPromptInstall}
+              title="Install Arogya Bhog Delivery Fleet App on this device"
+              aria-label="Install Arogya Bhog App"
+              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-400 via-[#C9A227] to-amber-500 hover:brightness-105 active:scale-95 text-gray-950 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-md border border-amber-300/60 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Install App</span>
+            </button>
+          )}
           <a
             href={customerStoreUrl}
             className="hidden sm:flex items-center space-x-1.5 text-gray-400 hover:text-[#C9A227] transition-colors"
@@ -135,7 +146,7 @@ export function DeliveryLoginView({ onLoginSuccess }) {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="delivery.ramesh@arogyabhog.com"
+                  placeholder="Enter delivery email or mobile"
                   className="w-full pl-10 pr-3.5 py-3 rounded-xl bg-[#121212] border border-[#2e2a20] text-sm text-white placeholder-gray-600 outline-none focus:border-sky-400 transition-all font-sans"
                   required
                 />

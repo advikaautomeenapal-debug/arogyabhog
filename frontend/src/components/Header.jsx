@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Bot, User, LogOut, Sun, Moon, Sparkles, Truck, ExternalLink, BookOpen, Download, Smartphone } from 'lucide-react';
+import { ShoppingBag, Bot, User, LogOut, Sun, Moon, Sparkles, Truck, ExternalLink, BookOpen, Download, Smartphone, Bell } from 'lucide-react';
 import { getPanelUrl } from '../utils/domainConfig';
 
 export function Header({ 
@@ -15,7 +15,9 @@ export function Header({
   isInstallable,
   isStandalone,
   isInstalled,
-  onPromptInstall
+  onPromptInstall,
+  unreadNotificationsCount = 0,
+  onOpenNotifications
 }) {
   const totalBags = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalWeight = cart.reduce((acc, item) => acc + (item.batchSizeKg * item.quantity), 0);
@@ -125,6 +127,21 @@ export function Header({
               <Sun className="w-4 h-4 text-[#C9A227] transition-transform hover:rotate-45" />
             ) : (
               <Moon className="w-4 h-4 text-gray-200 hover:text-[#C9A227] transition-transform" />
+            )}
+          </button>
+
+          {/* IN-APP NOTIFICATION BELL */}
+          <button
+            onClick={onOpenNotifications}
+            aria-label={`In-App Notifications (${unreadNotificationsCount || 0} unread)`}
+            title="In-App Notifications & Order Alerts"
+            className="relative p-1.5 sm:p-2 rounded-xl border border-[#2E2A20] bg-[#1A1A1A] hover:border-[#C9A227] text-white transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
+          >
+            <Bell className={`w-4 h-4 ${(unreadNotificationsCount || 0) > 0 ? 'text-[#C9A227]' : 'text-gray-300'}`} />
+            {(unreadNotificationsCount || 0) > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-extrabold px-1 min-w-[17px] h-[17px] flex items-center justify-center rounded-full leading-none shadow-md ring-2 ring-[#111111] animate-pulse">
+                {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+              </span>
             )}
           </button>
 

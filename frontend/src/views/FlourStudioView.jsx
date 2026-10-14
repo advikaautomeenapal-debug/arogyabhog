@@ -23,7 +23,6 @@ import {
   ChevronUp,
   BookOpen,
   HelpCircle,
-  MapPin,
   Bot,
   Search,
   Filter,
@@ -561,13 +560,6 @@ export function FlourStudioView({
         </div>
       )}
 
-      {/* Dynamic Announcement Notice if active */}
-      {siteContent?.announcementActive && siteContent?.announcementNotice && (
-        <div className="bg-[#C9A227]/10 border-b border-[#C9A227]/20 px-4 py-1.5 text-center text-xs text-amber-900 dark:text-[#E5C158] font-medium flex items-center justify-center space-x-2">
-          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#C9A227]" />
-          <span>{siteContent.announcementNotice}</span>
-        </div>
-      )}
 
       <div className={`mx-auto pt-3 md:pt-5 pb-24 md:pb-10 transition-all ${
         activeTab === 'customBlender' 

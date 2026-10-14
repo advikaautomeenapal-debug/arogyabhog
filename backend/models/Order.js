@@ -90,6 +90,22 @@ const activityLogSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 }, { _id: false });
 
+const orderMessageSchema = new mongoose.Schema({
+  senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  senderRole: { 
+    type: String, 
+    enum: ['customer', 'delivery', 'admin', 'system'], 
+    required: true 
+  },
+  senderName: { type: String, required: true },
+  senderPhone: { type: String, default: '' },
+  text: { type: String, required: true, trim: true },
+  readByCustomer: { type: Boolean, default: false },
+  readByDelivery: { type: Boolean, default: false },
+  readByAdmin: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const orderSchema = new mongoose.Schema({
   orderNumber: { type: String, required: true, unique: true },
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -274,7 +290,12 @@ const orderSchema = new mongoose.Schema({
     deliveredAt: { type: Date }
   },
   deliveryPaidAt: { type: Date },
-  stoneMillingRpm: { type: Number, default: 280 }
+  stoneMillingRpm: { type: Number, default: 280 },
+  // In-App Messaging Thread & Unread Badges
+  messages: [orderMessageSchema],
+  unreadCustomerMessagesCount: { type: Number, default: 0 },
+  unreadDeliveryMessagesCount: { type: Number, default: 0 },
+  unreadAdminMessagesCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
 orderSchema.pre('validate', function(next) {

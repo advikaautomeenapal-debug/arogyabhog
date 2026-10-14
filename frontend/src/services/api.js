@@ -1145,5 +1145,99 @@ export const api = {
     } catch (err) {
       return { success: false, message: err.message };
     }
+  },
+
+  // =========================================================================
+  // IN-APP NOTIFICATIONS & REAL-TIME ALERTS
+  // =========================================================================
+  async getNotifications({ phone = '', role = 'customer', unreadOnly = false, limit = 40 } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (phone) params.set('phone', phone);
+      if (role) params.set('role', role);
+      if (unreadOnly) params.set('unreadOnly', 'true');
+      if (limit) params.set('limit', String(limit));
+
+      const res = await fetch(`${API_BASE}/notifications?${params.toString()}`, {
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, unreadCount: 0, data: [], message: err.message };
+    }
+  },
+
+  async pollNotifications({ phone = '', role = 'customer', since = '' } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (phone) params.set('phone', phone);
+      if (role) params.set('role', role);
+      if (since) params.set('since', since);
+
+      const res = await fetch(`${API_BASE}/notifications/poll?${params.toString()}`, {
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, unreadCount: 0, hasNew: false, message: err.message };
+    }
+  },
+
+  async markNotificationRead(id) {
+    try {
+      const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+        method: 'PATCH',
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async markAllNotificationsRead({ phone = '', role = 'customer' } = {}) {
+    try {
+      const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ phone, role })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // =========================================================================
+  // IN-APP ORDER MESSAGING / LIVE CHATBOT
+  // =========================================================================
+  async getOrderMessages(orderId, role = 'customer') {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}/messages?role=${encodeURIComponent(role)}`, {
+        headers: getAuthHeaders()
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, messages: [], message: err.message };
+    }
+  },
+
+  async sendOrderMessage(orderId, { text, senderRole = 'customer', senderName = '', senderPhone = '', senderId = null }) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}/messages`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          text,
+          senderRole,
+          senderName,
+          senderPhone,
+          senderId
+        })
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
   }
 };

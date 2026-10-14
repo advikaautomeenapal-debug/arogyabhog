@@ -23,7 +23,8 @@ import {
   ShieldCheck,
   Download,
   Smartphone,
-  Sparkles
+  Sparkles,
+  MessageSquare
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -39,7 +40,8 @@ export function AuthModal({
   isInstallable = false,
   isStandalone = false,
   isInstalled = false,
-  onPromptInstall = null
+  onPromptInstall = null,
+  onOpenOrders = null
 }) {
   // Modes: 'login', 'register', 'forgot_whatsapp', 'enter_token'
   const [mode, setMode] = useState(initialToken ? 'enter_token' : 'login');
@@ -49,7 +51,7 @@ export function AuthModal({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [pincode, setPincode] = useState('208016');
+  const [pincode, setPincode] = useState('');
   
   // Recovery Fields
   const [resetTokenInput, setResetTokenInput] = useState(initialToken || '');
@@ -77,7 +79,7 @@ export function AuthModal({
     sector: user?.sector || '',
     city: user?.city || 'Kanpur',
     state: user?.state || 'Uttar Pradesh',
-    pincode: user?.pincode || '208016'
+    pincode: user?.pincode || ''
   });
 
   // Saved Addresses state
@@ -91,7 +93,7 @@ export function AuthModal({
     sector: '',
     city: user?.city || 'Kanpur',
     state: user?.state || 'Uttar Pradesh',
-    pincode: user?.pincode || '208016',
+    pincode: user?.pincode || '',
     isDefault: false
   });
 
@@ -104,7 +106,7 @@ export function AuthModal({
         sector: user.sector || '',
         city: user.city || 'Kanpur',
         state: user.state || 'Uttar Pradesh',
-        pincode: user.pincode || '208016'
+        pincode: user.pincode || ''
       });
       if (user.savedAddresses) {
         setSavedAddresses(user.savedAddresses);
@@ -606,6 +608,39 @@ export function AuthModal({
               )}
             </div>
 
+            {/* IN-APP HELP & ORDER CHAT SECTION */}
+            <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-[#1a1710] border border-[#C9A227]/40 space-y-2.5">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-[#C9A227]/20 border border-[#C9A227]/40 flex items-center justify-center text-[#C9A227]">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-[#fdfbf7] uppercase tracking-wider">
+                    In-App Help & Order Chat
+                  </h4>
+                  <span className="text-[10px] text-gray-500 dark:text-[#99907c]">
+                    Direct communication with fleet partner & chakki admin
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-600 dark:text-[#a89f8c] leading-relaxed">
+                Need real-time order updates, landmark directions, or recipe guidance? Chat live with your assigned delivery partner and chakki operations team directly in the app.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenOrders) onOpenOrders();
+                  onClose();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#C9A227] hover:bg-[#b8911f] text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Open Order Chat & Support</span>
+              </button>
+            </div>
+
             {/* Saved Address Book Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -965,7 +1000,7 @@ export function AuthModal({
                   required
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="208016"
+                  placeholder="Enter 6-digit PIN code"
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-300 dark:border-[#2E2A20] bg-gray-50 dark:bg-[#121212] text-xs text-gray-900 dark:text-[#F5F5F3] outline-none focus:border-[#C9A227] transition-all font-mono font-bold"
                 />
               </div>

@@ -10,10 +10,11 @@ import {
   Layers,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  MessageSquare
 } from 'lucide-react';
 
-export function OrdersView({ orders, onNavigateToStudio }) {
+export function OrdersView({ orders, onNavigateToStudio, onOpenChat }) {
   const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   const toggleExpand = (orderId) => {
@@ -174,14 +175,26 @@ export function OrdersView({ orders, onNavigateToStudio }) {
                   </div>
                 </div>
 
-                {/* Breakdown details toggler */}
-                <div className="flex items-center justify-between pt-1">
+                {/* Action Bar: Breakdown details toggler & In-App Chat button */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-[#222222]">
                   <button
                     onClick={() => toggleExpand(order._id)}
                     className="text-xs text-[#C9A227] hover:underline flex items-center space-x-1 uppercase font-semibold"
                   >
                     <span>{isExpanded ? 'Hide Composition' : 'View Grain Ratios & Composition'}</span>
                     {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onOpenChat && onOpenChat(order)}
+                    className="py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-[#C9A227]/40 hover:border-[#C9A227] text-[#C9A227] text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>In-App Chat & Help</span>
+                    {(order.unreadCustomerMessagesCount || 0) > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    )}
                   </button>
                 </div>
 

@@ -48,6 +48,7 @@ import {
   Tag,
   Camera,
   MessageCircle,
+  MessageSquare,
   Image as ImageIcon
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -60,6 +61,11 @@ import { AdminCouponsSection } from '../components/AdminCouponsSection';
 import { AdminChakkiPincodesSection } from '../components/AdminChakkiPincodesSection';
 import { AdminArticlesSection } from '../components/AdminArticlesSection';
 import { AdminWhatsAppModal } from '../components/AdminWhatsAppModal';
+import { OrderChatModal } from '../components/OrderChatModal';
+import { useInAppNotifications } from '../utils/useInAppNotifications';
+import { FloatingNotificationBanner } from '../components/FloatingNotificationBanner';
+import { usePWA } from '../utils/usePWA';
+import { IOSInstallModal } from '../components/IOSInstallModal';
 
 export function AdminView({ 
   products = [], 
@@ -68,8 +74,23 @@ export function AdminView({
   siteContent = null,
   onReloadData, 
   onLogout, 
-  user = { name: 'Chakki Admin', role: 'admin' } 
+  user = { name: 'Chakki Admin', role: 'admin' },
+  isStandalone,
+  isInstallable,
+  isInstalled,
+  onPromptInstall,
+  showIOSGuide,
+  setShowIOSGuide
 }) {
+  const pwa = usePWA();
+  const promptInstallFn = onPromptInstall || pwa.promptInstall;
+  const isInstalledOrStandalone = isStandalone !== undefined ? isStandalone : (pwa.isStandalone || pwa.isInstalled);
+  const isGuideVisible = showIOSGuide !== undefined ? showIOSGuide : pwa.showIOSGuide;
+  const handleCloseGuide = () => {
+    if (setShowIOSGuide) setShowIOSGuide(false);
+    pwa.setShowIOSGuide(false);
+  };
+
   // Active Admin Tab (12 Sections Architecture):
   // 'orders' (Sec 1-6) | 'export' (Sec 7) | 'nutrition' (Sec 8) | 'recipes' (Sec 9) | 'costs' (Sec 10) | 'delivery' (Sec 11) | 'reports' (Sec 12) | 'inventory'
   const safeProducts = Array.isArray(products) ? products : [];
@@ -141,7 +162,14 @@ export function AdminView({
   const [queueOrders, setQueueOrders] = useState([]);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
   const [whatsAppModalOrder, setWhatsAppModalOrder] = useState(null);
+  const [chatModalOrder, setChatModalOrder] = useState(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // In-App Real-Time Notifications for Admin Floor
+  const {
+    activeFloatingNotification,
+    dismissFloatingNotification
+  } = useInAppNotifications({ user, role: 'admin' });
 
   // Delivery Areas & Site Content State
   const [deliveryAreas, setDeliveryAreas] = useState({ cities: [], zones: [], chakkis: [] });
@@ -1571,6 +1599,19 @@ export function AdminView({
         </div>
 
         <div className="flex items-center space-x-2 self-end sm:self-auto">
+          {/* INSTALL AROGYA BHOG APP (Prominently visible in Admin Panel) */}
+          {!isInstalledOrStandalone && (
+            <button
+              onClick={promptInstallFn}
+              title="Install Arogya Bhog Admin App on this device"
+              aria-label="Install App"
+              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-[#C9A227] to-amber-500 hover:brightness-105 active:scale-95 text-gray-950 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex-shrink-0 cursor-pointer shadow-md border border-amber-300/60"
+            >
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Install App</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               loadFloorData();
@@ -2554,6 +2595,20 @@ export function AdminView({
                                 <span>WhatsApp</span>
                               </button>
 
+                              {/* In-App Order Chat */}
+                              <button
+                                type="button"
+                                onClick={() => setChatModalOrder(order)}
+                                className="py-1.5 px-2.5 rounded-xl border border-[#C9A227]/40 hover:border-[#C9A227] bg-amber-500/10 hover:bg-amber-500/20 text-[#C9A227] font-bold text-xs flex items-center space-x-1 transition-all shadow-sm cursor-pointer"
+                                title="In-App Chat with Customer & Delivery Fleet"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>In-App Chat</span>
+                                {(order.unreadAdminMessagesCount || 0) > 0 && (
+                                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                )}
+                              </button>
+
                               {/* Full Details Modal Button */}
                               <button
                                 onClick={() => setSelectedOrderDetail(order)}
@@ -2723,6 +2778,19 @@ export function AdminView({
                         >
                           <MessageCircle className="w-3.5 h-3.5 fill-current text-emerald-600 dark:text-emerald-400" />
                           <span>WhatsApp</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setChatModalOrder(order)}
+                          className="py-2 px-2.5 rounded-xl border border-[#C9A227]/40 hover:border-[#C9A227] bg-amber-500/10 hover:bg-amber-500/20 text-[#C9A227] font-bold text-xs flex items-center space-x-1 transition-all shadow-sm cursor-pointer"
+                          title="In-App Chat with Customer & Delivery Fleet"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Chat</span>
+                          {(order.unreadAdminMessagesCount || 0) > 0 && (
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                          )}
                         </button>
 
                         <div className="flex items-center space-x-1">
@@ -2937,6 +3005,17 @@ export function AdminView({
                               title="Send WhatsApp confirmation & chat"
                             >
                               <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setChatModalOrder(o)}
+                              className="p-1 rounded-lg border border-[#C9A227]/40 hover:border-[#C9A227] text-[#C9A227] hover:bg-amber-500/10 transition-all relative"
+                              title="In-App Chat with Customer & Delivery Fleet"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              {(o.unreadAdminMessagesCount || 0) > 0 && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                              )}
                             </button>
                             <button
                               type="button"
@@ -4330,7 +4409,7 @@ export function AdminView({
                 <input
                   type="email"
                   required
-                  placeholder="e.g. delivery.ramesh@arogyabhog.com"
+                  placeholder="e.g. delivery@arogyabhog.com"
                   value={newDpForm.email}
                   onChange={(e) => setNewDpForm({ ...newDpForm, email: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-[#131313] border border-gray-200 dark:border-[#2e2a20] focus:border-[#C9A227] text-xs text-gray-900 dark:text-[#fdfbf7] outline-none"
@@ -5916,6 +5995,19 @@ export function AdminView({
                 >
                   <MessageCircle className="w-4 h-4 fill-current" />
                   <span>Send WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setChatModalOrder(selectedOrderDetail)}
+                  className="py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-[#C9A227] text-[#C9A227] font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer"
+                  title="Open live in-app chat with customer and delivery partner"
+                >
+                  <MessageSquare className="w-4 h-4 stroke-[2.5]" />
+                  <span>In-App Chat</span>
+                  {(selectedOrderDetail.unreadAdminMessagesCount || 0) > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  )}
                 </button>
 
                 <button
@@ -7945,6 +8037,32 @@ export function AdminView({
           onUpdateStatus={handleUpdateOrderStatus}
         />
       )}
+
+      {/* In-App Floating Notification for Admin */}
+      <FloatingNotificationBanner
+        notification={activeFloatingNotification}
+        onDismiss={dismissFloatingNotification}
+        onAction={(notif) => {
+          if (notif.orderNumber || notif.orderId) {
+            setChatModalOrder({ orderNumber: notif.orderNumber, _id: notif.orderId });
+          }
+        }}
+      />
+
+      {/* In-App Order Chat & Communication Modal */}
+      <OrderChatModal
+        isOpen={Boolean(chatModalOrder)}
+        onClose={() => setChatModalOrder(null)}
+        order={chatModalOrder}
+        currentUser={user}
+        currentRole="admin"
+      />
+
+      {/* Step-by-Step Device Install Guide Modal */}
+      <IOSInstallModal
+        isOpen={isGuideVisible}
+        onClose={handleCloseGuide}
+      />
 
     </div>
   );

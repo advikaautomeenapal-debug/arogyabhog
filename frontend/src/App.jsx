@@ -23,6 +23,10 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { IOSInstallModal } from './components/IOSInstallModal';
 import { PRODUCT_SEO_CATALOG } from './utils/productSeoData';
+import { useInAppNotifications } from './utils/useInAppNotifications';
+import { FloatingNotificationBanner } from './components/FloatingNotificationBanner';
+import { NotificationCenterModal } from './components/NotificationCenterModal';
+import { OrderChatModal } from './components/OrderChatModal';
 
 // Instant initial products catalog from verified data for 0ms First-Contentful-Paint
 const INITIAL_PRODUCTS = Object.values(PRODUCT_SEO_CATALOG).map(p => ({
@@ -88,6 +92,25 @@ export function App() {
 
   const isAdmin = user && user.role === 'admin';
   const isDelivery = user && user.role === 'delivery';
+
+  // In-App Real-Time Order Notifications & Live Chat Communication Hook
+  const {
+    notifications,
+    unreadCount: unreadNotificationsCount,
+    activeFloatingNotification,
+    isNotificationCenterOpen,
+    activeChatOrder,
+    openOrderChat,
+    closeOrderChat,
+    openNotificationCenter,
+    closeNotificationCenter,
+    markNotificationRead,
+    markAllNotificationsRead,
+    dismissFloatingNotification
+  } = useInAppNotifications({ 
+    user, 
+    role: isAdmin ? 'admin' : (isDelivery ? 'delivery' : 'customer') 
+  });
 
   // Helper to extract product slug from URL path (/product/:slug) or hash (#product/:slug)
   const parseProductSlug = () => {
@@ -436,18 +459,42 @@ export function App() {
   if (panelContext === 'admin') {
     if (isAdmin) {
       return (
-        <AdminView
-          products={products}
-          grains={grains}
-          operationalCosts={operationalCosts}
-          siteContent={siteContent}
-          user={user}
-          onReloadData={loadInitialData}
-          onLogout={handleLogout}
-        />
+        <>
+          <AdminView
+            products={products}
+            grains={grains}
+            operationalCosts={operationalCosts}
+            siteContent={siteContent}
+            user={user}
+            onReloadData={loadInitialData}
+            onLogout={handleLogout}
+            isStandalone={isStandalone}
+            isInstallable={isInstallable}
+            isInstalled={isInstalled}
+            onPromptInstall={promptInstall}
+            showIOSGuide={showIOSGuide}
+            setShowIOSGuide={setShowIOSGuide}
+          />
+          <IOSInstallModal
+            isOpen={showIOSGuide}
+            onClose={() => setShowIOSGuide(false)}
+          />
+        </>
       );
     }
-    return <AdminLoginView onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <>
+        <AdminLoginView 
+          onLoginSuccess={handleLoginSuccess}
+          isStandalone={isStandalone}
+          onPromptInstall={promptInstall}
+        />
+        <IOSInstallModal
+          isOpen={showIOSGuide}
+          onClose={() => setShowIOSGuide(false)}
+        />
+      </>
+    );
   }
 
   // =========================================================================
@@ -456,13 +503,37 @@ export function App() {
   if (panelContext === 'delivery') {
     if (isDelivery || isAdmin) {
       return (
-        <DeliveryView
-          user={user}
-          onLogout={handleLogout}
-        />
+        <>
+          <DeliveryView
+            user={user}
+            onLogout={handleLogout}
+            isStandalone={isStandalone}
+            isInstallable={isInstallable}
+            isInstalled={isInstalled}
+            onPromptInstall={promptInstall}
+            showIOSGuide={showIOSGuide}
+            setShowIOSGuide={setShowIOSGuide}
+          />
+          <IOSInstallModal
+            isOpen={showIOSGuide}
+            onClose={() => setShowIOSGuide(false)}
+          />
+        </>
       );
     }
-    return <DeliveryLoginView onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <>
+        <DeliveryLoginView 
+          onLoginSuccess={handleLoginSuccess}
+          isStandalone={isStandalone}
+          onPromptInstall={promptInstall}
+        />
+        <IOSInstallModal
+          isOpen={showIOSGuide}
+          onClose={() => setShowIOSGuide(false)}
+        />
+      </>
+    );
   }
 
   // =========================================================================
@@ -536,6 +607,8 @@ export function App() {
         isStandalone={isStandalone}
         isInstalled={isInstalled}
         onPromptInstall={promptInstall}
+        unreadNotificationsCount={unreadNotificationsCount}
+        onOpenNotifications={openNotificationCenter}
       />
 
       {/* Main Content Area - Strictly Customer Tabs */}
@@ -595,6 +668,7 @@ export function App() {
               onLoginSuccess={handleLoginSuccess}
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveItem={handleRemoveItem}
+              onOpenOrderChat={openOrderChat}
             />
           </ErrorBoundary>
         )}
@@ -610,6 +684,7 @@ export function App() {
           <OrdersView
             orders={orders}
             onNavigateToStudio={() => setCurrentTab('flourStudio')}
+            onOpenChat={openOrderChat}
           />
         )}
 
@@ -617,6 +692,12 @@ export function App() {
           <DeliveryView
             user={user}
             onLogout={handleLogout}
+            isStandalone={isStandalone}
+            isInstallable={isInstallable}
+            isInstalled={isInstalled}
+            onPromptInstall={promptInstall}
+            showIOSGuide={showIOSGuide}
+            setShowIOSGuide={setShowIOSGuide}
           />
         )}
       </main>
@@ -649,6 +730,7 @@ export function App() {
         isStandalone={isStandalone}
         isInstalled={isInstalled}
         onPromptInstall={promptInstall}
+        onOpenOrders={() => navigateToTab('orders')}
       />
 
       {/* Step-by-Step iOS Safari Install Guide Modal */}
@@ -668,6 +750,46 @@ export function App() {
         cart={cart}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
+      />
+
+      {/* In-App Floating Notification Toast Alert */}
+      <FloatingNotificationBanner
+        notification={activeFloatingNotification}
+        onDismiss={dismissFloatingNotification}
+        onAction={(notif) => {
+          if (notif.orderNumber || notif.orderId) {
+            openOrderChat({ orderNumber: notif.orderNumber, _id: notif.orderId });
+          } else {
+            openNotificationCenter();
+          }
+        }}
+      />
+
+      {/* In-App Notification Center Drawer Modal */}
+      <NotificationCenterModal
+        isOpen={isNotificationCenterOpen}
+        onClose={closeNotificationCenter}
+        notifications={notifications}
+        unreadCount={unreadNotificationsCount}
+        onMarkRead={markNotificationRead}
+        onMarkAllRead={markAllNotificationsRead}
+        onOpenOrderChat={(orderInfo) => {
+          closeNotificationCenter();
+          openOrderChat(orderInfo);
+        }}
+        onViewOrder={() => {
+          closeNotificationCenter();
+          navigateToTab('orders');
+        }}
+      />
+
+      {/* In-App Order Chat & Communication Modal */}
+      <OrderChatModal
+        isOpen={Boolean(activeChatOrder)}
+        onClose={closeOrderChat}
+        order={activeChatOrder}
+        currentUser={user}
+        currentRole={isAdmin ? 'admin' : (isDelivery ? 'delivery' : 'customer')}
       />
 
     </div>

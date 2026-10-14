@@ -13,6 +13,12 @@ const { resolveGrainDoc } = require('../utils/grainResolver');
 const { normalizePhone } = require('../utils/phoneHelper');
 const { sendOrderNotificationEmail } = require('../utils/emailNotifier');
 const { sendOrderWhatsAppNotification, formatOrderWhatsAppConfirmation, buildWhatsAppClickUrl } = require('../utils/whatsappNotifier');
+const {
+  notifyOrderStatusChange,
+  notifyDeliveryAccepted,
+  notifyNewOrderMessage,
+  createNotification
+} = require('../utils/inAppNotifier');
 
 // Calculate 16 nutrients for an item's confirmed grain breakdown
 const calculateItemNutritionSnapshot = (grainBreakdown, batchSizeKg, quantity, grainMap, allGrains) => {
@@ -445,6 +451,132 @@ router.get('/:id/whatsapp', optionalAuth, async (req, res) => {
       customerPhone: phone,
       whatsappUrl,
       message
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/orders/:id/messages - Fetch in-app chat thread for an order
+router.get('/:id/messages', optionalAuth, async (req, res) => {
+  try {
+    let order;
+    if (req.params.id.startsWith('#AB-')) {
+      order = await Order.findOne({ orderNumber: req.params.id });
+    } else {
+      order = await Order.findById(req.params.id);
+    }
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const role = (req.query.role || req.user?.role || 'customer').toLowerCase();
+    
+    // Mark messages as read for this viewing role
+    let hasUpdated = false;
+    if (order.messages && order.messages.length > 0) {
+      order.messages.forEach(m => {
+        if (role === 'customer' && !m.readByCustomer) {
+          m.readByCustomer = true;
+          hasUpdated = true;
+        } else if (role === 'delivery' && !m.readByDelivery) {
+          m.readByDelivery = true;
+          hasUpdated = true;
+        } else if (role === 'admin' && !m.readByAdmin) {
+          m.readByAdmin = true;
+          hasUpdated = true;
+        }
+      });
+      if (hasUpdated) {
+        if (role === 'customer') order.unreadCustomerMessagesCount = 0;
+        if (role === 'delivery') order.unreadDeliveryMessagesCount = 0;
+        if (role === 'admin') order.unreadAdminMessagesCount = 0;
+        await order.save();
+      }
+    }
+
+    res.json({
+      success: true,
+      orderNumber: order.orderNumber,
+      orderId: order._id,
+      orderStatus: order.orderStatus,
+      millingStatus: order.millingStatus,
+      assignedDeliveryPersonName: order.assignedDeliveryPersonName,
+      assignedDeliveryPersonPhone: order.assignedDeliveryPersonPhone,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone || order.customerContact,
+      customerAddress: order.customerAddress,
+      items: (order.items || []).map(i => ({ name: i.name, batchSizeKg: i.batchSizeKg, quantity: i.quantity })),
+      messages: order.messages || []
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/orders/:id/messages - Send message in order chat
+router.post('/:id/messages', optionalAuth, async (req, res) => {
+  try {
+    let order;
+    if (req.params.id.startsWith('#AB-')) {
+      order = await Order.findOne({ orderNumber: req.params.id });
+    } else {
+      order = await Order.findById(req.params.id);
+    }
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const { text, senderRole = 'customer', senderName, senderPhone, senderId } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Message text cannot be empty' });
+    }
+
+    const normalizedRole = senderRole.toLowerCase();
+    const finalSenderName = senderName || (
+      normalizedRole === 'admin' 
+        ? 'Chakki Admin' 
+        : normalizedRole === 'delivery' 
+          ? (order.assignedDeliveryPersonName || 'Delivery Partner') 
+          : order.customerName
+    );
+    
+    const messageDoc = {
+      senderId: senderId || req.user?._id || null,
+      senderRole: normalizedRole,
+      senderName: finalSenderName,
+      senderPhone: senderPhone || req.user?.phone || (normalizedRole === 'customer' ? order.customerPhone : ''),
+      text: text.trim(),
+      readByCustomer: normalizedRole === 'customer',
+      readByDelivery: normalizedRole === 'delivery',
+      readByAdmin: normalizedRole === 'admin',
+      createdAt: new Date()
+    };
+
+    if (!order.messages) order.messages = [];
+    order.messages.push(messageDoc);
+
+    // Update unread counters for other roles
+    if (normalizedRole === 'customer') {
+      order.unreadDeliveryMessagesCount = (order.unreadDeliveryMessagesCount || 0) + 1;
+      order.unreadAdminMessagesCount = (order.unreadAdminMessagesCount || 0) + 1;
+    } else if (normalizedRole === 'delivery') {
+      order.unreadCustomerMessagesCount = (order.unreadCustomerMessagesCount || 0) + 1;
+      order.unreadAdminMessagesCount = (order.unreadAdminMessagesCount || 0) + 1;
+    } else if (normalizedRole === 'admin') {
+      order.unreadCustomerMessagesCount = (order.unreadCustomerMessagesCount || 0) + 1;
+      order.unreadDeliveryMessagesCount = (order.unreadDeliveryMessagesCount || 0) + 1;
+    }
+
+    await order.save();
+
+    // Trigger in-app notifications
+    await notifyNewOrderMessage(order, messageDoc);
+
+    res.json({
+      success: true,
+      message: 'Message sent successfully',
+      data: order.messages
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1070,6 +1202,43 @@ router.post('/', async (req, res) => {
         console.error('[WhatsApp Notification Error]:', waErr.message);
       });
 
+      // Trigger in-app notifications
+      createNotification({
+        recipientPhone: savedOrder.customerPhone || savedOrder.customerContact,
+        recipientId: savedOrder.customerId,
+        recipientRole: 'customer',
+        orderId: savedOrder._id,
+        orderNumber: savedOrder.orderNumber,
+        type: 'ORDER_PLACED',
+        title: `🌾 Order Received (#${savedOrder.orderNumber})`,
+        message: `Your fresh atta order of ₹${savedOrder.totalAmount} has been placed successfully.`,
+        metadata: { orderNumber: savedOrder.orderNumber, totalAmount: savedOrder.totalAmount }
+      }).catch(err => console.error('[InApp Notification Order Error]:', err));
+
+      createNotification({
+        recipientRole: 'admin',
+        orderId: savedOrder._id,
+        orderNumber: savedOrder.orderNumber,
+        type: 'ORDER_PLACED',
+        title: `📋 New Order #${savedOrder.orderNumber} Placed`,
+        message: `${savedOrder.customerName} placed order of ₹${savedOrder.totalAmount}. Payment: ${savedOrder.paymentMethod}.`,
+        metadata: { orderNumber: savedOrder.orderNumber, totalAmount: savedOrder.totalAmount }
+      }).catch(err => console.error('[InApp Notification Admin Error]:', err));
+
+      if (savedOrder.assignedDeliveryPerson) {
+        createNotification({
+          recipientPhone: savedOrder.assignedDeliveryPersonPhone,
+          recipientId: savedOrder.assignedDeliveryPerson,
+          recipientRole: 'delivery',
+          orderId: savedOrder._id,
+          orderNumber: savedOrder.orderNumber,
+          type: 'ORDER_PLACED',
+          title: `📦 New Delivery Order #${savedOrder.orderNumber}`,
+          message: `Destination: ${savedOrder.customerAddress}. Total: ₹${savedOrder.totalAmount}.`,
+          metadata: { orderNumber: savedOrder.orderNumber }
+        }).catch(err => console.error('[InApp Notification DP Error]:', err));
+      }
+
       // Record coupon redemption if a coupon was applied
       if (couponDoc && verifiedDiscount > 0) {
         try {
@@ -1235,6 +1404,18 @@ router.patch('/:id/payment-status', protect, adminOnly, async (req, res) => {
 
     await order.save();
 
+    createNotification({
+      recipientPhone: order.customerPhone || order.customerContact,
+      recipientId: order.customerId,
+      recipientRole: 'customer',
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      type: 'PAYMENT_UPDATE',
+      title: `💰 Payment Marked ${paymentStatus} (#${order.orderNumber})`,
+      message: `Your payment of ₹${order.totalAmount} has been verified as "${paymentStatus}".`,
+      metadata: { paymentStatus, amount: order.totalAmount }
+    }).catch(err => console.error('[Notification Payment Error]:', err));
+
     res.json({
       success: true,
       message: `Payment status for ${order.orderNumber} updated to "${paymentStatus}"`,
@@ -1262,9 +1443,9 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
       'Cancelled', 'CANCELLED', 'CANCELLED_UNSERVICEABLE',
       'REFUND_PENDING', 'REFUNDED'
     ];
+    const prevStatus = order.orderStatus;
 
     if (orderStatus && validStatuses.includes(orderStatus)) {
-      const prevStatus = order.orderStatus;
       const normalizedStatus = orderStatus === 'Confirmed' ? 'Accepted' : orderStatus;
       order.orderStatus = normalizedStatus;
 
@@ -1440,6 +1621,10 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
     }
 
     await order.save();
+
+    notifyOrderStatusChange(order, prevStatus, order.orderStatus, actorName || changedBy || 'Admin').catch(err => {
+      console.error('[Notification Error on status change]:', err);
+    });
 
     res.json({
       success: true,
@@ -1695,6 +1880,9 @@ router.post('/:id/delivery-accept', protect, deliveryOrAdmin, async (req, res) =
 
     await order.save();
 
+    notifyDeliveryAccepted(order, req.user).catch(err => console.error(err));
+    notifyOrderStatusChange(order, prevStatus, 'Shipped', req.user.name).catch(err => console.error(err));
+
     res.json({
       success: true,
       message: `Order ${order.orderNumber} accepted for delivery and marked as Shipped!`,
@@ -1817,6 +2005,8 @@ router.post('/:id/delivery-complete', protect, deliveryOrAdmin, async (req, res)
 
     await order.save();
 
+    notifyOrderStatusChange(order, prevStatus, 'Delivered', req.user.name).catch(err => console.error(err));
+
     res.json({
       success: true,
       message: `Order ${order.orderNumber} successfully marked as Delivered!`,
@@ -1860,6 +2050,30 @@ router.patch('/:id/assign-delivery', protect, adminOnly, async (req, res) => {
     });
 
     await order.save();
+
+    createNotification({
+      recipientPhone: order.customerPhone || order.customerContact,
+      recipientId: order.customerId,
+      recipientRole: 'customer',
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      type: 'ORDER_ACCEPTED',
+      title: `🛵 Delivery Partner Assigned (#${order.orderNumber})`,
+      message: `${dp.name} (+91 ${dp.phone}) has been assigned to deliver your order. You can chat with them in-app.`,
+      metadata: { dpName: dp.name, dpPhone: dp.phone }
+    }).catch(err => console.error(err));
+
+    createNotification({
+      recipientPhone: dp.phone,
+      recipientId: dp._id,
+      recipientRole: 'delivery',
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      type: 'ORDER_PLACED',
+      title: `📦 Order #${order.orderNumber} Assigned to You`,
+      message: `Customer: ${order.customerName} (${order.customerPhone || ''}). Destination: ${order.customerAddress}. Total: ₹${order.totalAmount}.`,
+      metadata: { orderNumber: order.orderNumber }
+    }).catch(err => console.error(err));
 
     res.json({
       success: true,

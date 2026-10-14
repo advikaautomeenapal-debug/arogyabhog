@@ -20,11 +20,11 @@ const siteContentSchema = new mongoose.Schema({
   },
   announcementNotice: { 
     type: String, 
-    default: 'We currently serve selected PIN codes in Kanpur (208016, 209202).' 
+    default: '' 
   },
   announcementActive: { 
     type: Boolean, 
-    default: true 
+    default: false 
   },
   serviceNotice: { 
     type: String, 

@@ -23,7 +23,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Truck,
-  Check
+  Check,
+  MessageSquare
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getProductSlug, PRODUCT_SEO_CATALOG } from '../utils/productSeoData';
@@ -38,7 +39,8 @@ export function CheckoutView({
   onOpenAuth,
   onLoginSuccess,
   onUpdateQuantity,
-  onRemoveItem
+  onRemoveItem,
+  onOpenOrderChat
 }) {
   // Address Book state
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -55,7 +57,7 @@ export function CheckoutView({
     sector: user?.sector || '',
     city: user?.city || 'Kanpur',
     state: user?.state || 'Uttar Pradesh',
-    pincode: user?.pincode || '208016',
+    pincode: user?.pincode || '',
     label: 'Home',
     deliveryTime: 'Tomorrow, 8:00 PM'
   });
@@ -79,7 +81,7 @@ export function CheckoutView({
     sector: '',
     city: 'Kanpur',
     state: 'Uttar Pradesh',
-    pincode: '208016',
+    pincode: '',
     isDefault: false
   });
 
@@ -194,7 +196,7 @@ export function CheckoutView({
           sector: res.user.sector || prev.sector,
           city: res.user.city || prev.city || 'Kanpur',
           state: res.user.state || prev.state || 'Uttar Pradesh',
-          pincode: res.user.pincode || prev.pincode || '208016'
+          pincode: res.user.pincode || prev.pincode || ''
         }));
         setAuthPassword('');
         setMobileCheckResult(null);
@@ -381,7 +383,7 @@ export function CheckoutView({
           sector: prev.sector || user.sector || '',
           city: prev.city || user.city || 'Kanpur',
           state: prev.state || user.state || 'Uttar Pradesh',
-          pincode: prev.pincode || user.pincode || '208016'
+          pincode: prev.pincode || user.pincode || ''
         }));
       }
     } catch (err) {
@@ -407,7 +409,7 @@ export function CheckoutView({
       sector: addr.sector || '',
       city: addr.city || 'Kanpur',
       state: addr.state || 'Uttar Pradesh',
-      pincode: addr.pincode || '208016',
+      pincode: addr.pincode || '',
       label: addr.label || 'Home'
     }));
   };
@@ -422,7 +424,7 @@ export function CheckoutView({
       sector: '',
       city: deliveryInfo.city || 'Kanpur',
       state: deliveryInfo.state || 'Uttar Pradesh',
-      pincode: deliveryInfo.pincode || '208016',
+      pincode: deliveryInfo.pincode || '',
       isDefault: savedAddresses.length === 0
     });
     setDeliveryValidationError('');
@@ -440,7 +442,7 @@ export function CheckoutView({
       sector: addr.sector || '',
       city: addr.city || 'Kanpur',
       state: addr.state || 'Uttar Pradesh',
-      pincode: addr.pincode || '208016',
+      pincode: addr.pincode || '',
       isDefault: Boolean(addr.isDefault)
     });
     setDeliveryValidationError('');
@@ -786,6 +788,18 @@ export function CheckoutView({
             <MessageCircle className="w-4 h-4 fill-current" />
             <span>Confirm Order on Admin WhatsApp</span>
           </a>
+
+          {/* In-App Direct Order Chat Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenOrderChat) onOpenOrderChat(orderConfirmed);
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-[#C9A227] text-[#C9A227] font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm"
+          >
+            <MessageSquare className="w-4 h-4 stroke-[2.5]" />
+            <span>Chat with Delivery & Support In-App</span>
+          </button>
         </div>
 
         <div className="space-y-2 pt-2">
@@ -1289,7 +1303,7 @@ export function CheckoutView({
                             sector: deliveryInfo.sector || '',
                             city: deliveryInfo.city || 'Kanpur',
                             state: deliveryInfo.state || 'Uttar Pradesh',
-                            pincode: deliveryInfo.pincode || '208016',
+                            pincode: deliveryInfo.pincode || '',
                             isDefault: true
                           });
                           setEditingAddressId(null);
@@ -1783,7 +1797,7 @@ export function CheckoutView({
                     value={addressForm.pincode}
                     onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value.replace(/\D/g, '') })}
                     className="w-full p-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-amber-600"
-                    placeholder="208016"
+                    placeholder="Enter 6-digit PIN code"
                     required
                   />
                 </div>

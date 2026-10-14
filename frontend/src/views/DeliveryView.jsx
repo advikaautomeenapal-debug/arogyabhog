@@ -20,21 +20,53 @@ import {
   Calendar,
   Sparkles,
   QrCode,
-  Copy
+  Copy,
+  MessageSquare,
+  Download
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
 import { buildUpiUri, MERCHANT_UPI_ID } from '../utils/upiHelper';
+import { OrderChatModal } from '../components/OrderChatModal';
+import { useInAppNotifications } from '../utils/useInAppNotifications';
+import { FloatingNotificationBanner } from '../components/FloatingNotificationBanner';
+import { usePWA } from '../utils/usePWA';
+import { IOSInstallModal } from '../components/IOSInstallModal';
 
-export function DeliveryView({ user, onLogout }) {
+export function DeliveryView({ 
+  user, 
+  onLogout,
+  isStandalone,
+  isInstallable,
+  isInstalled,
+  onPromptInstall,
+  showIOSGuide,
+  setShowIOSGuide
+}) {
+  const pwa = usePWA();
+  const promptInstallFn = onPromptInstall || pwa.promptInstall;
+  const isInstalledOrStandalone = isStandalone !== undefined ? isStandalone : (pwa.isStandalone || pwa.isInstalled);
+  const isGuideVisible = showIOSGuide !== undefined ? showIOSGuide : pwa.showIOSGuide;
+  const handleCloseGuide = () => {
+    if (setShowIOSGuide) setShowIOSGuide(false);
+    pwa.setShowIOSGuide(false);
+  };
+
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active'); // 'active' | 'completed'
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable ?? true);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
   const [qrModalOrder, setQrModalOrder] = useState(null);
+  const [chatModalOrder, setChatModalOrder] = useState(null);
   const [processingOrderId, setProcessingOrderId] = useState(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
+
+  // In-App Notification alerting for delivery drivers
+  const {
+    activeFloatingNotification,
+    dismissFloatingNotification
+  } = useInAppNotifications({ user, role: 'delivery' });
 
   // Load orders assigned to this delivery person
   const loadDeliveryOrders = async () => {
@@ -204,6 +236,19 @@ export function DeliveryView({ user, onLogout }) {
         </div>
 
         <div className="flex items-center space-x-2.5 self-end sm:self-auto">
+          {/* INSTALL AROGYA BHOG APP (Prominently visible in Delivery Partner Panel) */}
+          {!isInstalledOrStandalone && (
+            <button
+              onClick={promptInstallFn}
+              title="Install Arogya Bhog Delivery Partner App on this device"
+              aria-label="Install App"
+              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-[#C9A227] to-amber-500 hover:brightness-105 active:scale-95 text-gray-950 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex-shrink-0 cursor-pointer shadow-md border border-amber-300/60"
+            >
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Install App</span>
+            </button>
+          )}
+
           {/* Availability Toggle */}
           <button
             onClick={handleToggleAvailability}
@@ -549,6 +594,20 @@ export function DeliveryView({ user, onLogout }) {
                     <Eye className="w-3.5 h-3.5" />
                     <span>View Breakdown</span>
                   </button>
+
+                  {/* In-App Direct Chat Button */}
+                  <button
+                    type="button"
+                    onClick={() => setChatModalOrder(order)}
+                    className="py-2.5 px-4 rounded-xl border border-[#C9A227]/40 hover:border-[#C9A227] bg-amber-500/10 hover:bg-amber-500/20 text-[#C9A227] text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
+                    title="Chat directly with customer for order updates or location assistance"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>In-App Chat</span>
+                    {(order.unreadDeliveryMessagesCount || 0) > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    )}
+                  </button>
                 </div>
               </div>
             );
@@ -639,12 +698,25 @@ export function DeliveryView({ user, onLogout }) {
               <span className="text-[#C9A227] text-lg font-mono">₹{selectedOrderDetails.totalAmount}</span>
             </div>
 
-            <button
-              onClick={() => setSelectedOrderDetails(null)}
-              className="w-full py-2.5 rounded-xl bg-gray-200 dark:bg-[#25221b] text-gray-800 dark:text-[#fdfbf7] font-bold text-xs uppercase"
-            >
-              Close
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setChatModalOrder(selectedOrderDetails)}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-[#C9A227] text-[#C9A227] font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 transition-all shadow-sm cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>In-App Chat with Customer</span>
+                {(selectedOrderDetails.unreadDeliveryMessagesCount || 0) > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                )}
+              </button>
+              <button
+                onClick={() => setSelectedOrderDetails(null)}
+                className="py-2.5 px-5 rounded-xl bg-gray-200 dark:bg-[#25221b] text-gray-800 dark:text-[#fdfbf7] font-bold text-xs uppercase"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -753,6 +825,32 @@ export function DeliveryView({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* In-App Floating Notification for Delivery Driver */}
+      <FloatingNotificationBanner
+        notification={activeFloatingNotification}
+        onDismiss={dismissFloatingNotification}
+        onAction={(notif) => {
+          if (notif.orderNumber || notif.orderId) {
+            setChatModalOrder({ orderNumber: notif.orderNumber, _id: notif.orderId });
+          }
+        }}
+      />
+
+      {/* In-App Order Chat & Communication Modal */}
+      <OrderChatModal
+        isOpen={Boolean(chatModalOrder)}
+        onClose={() => setChatModalOrder(null)}
+        order={chatModalOrder}
+        currentUser={user}
+        currentRole="delivery"
+      />
+
+      {/* Step-by-Step Device Install Guide Modal */}
+      <IOSInstallModal
+        isOpen={isGuideVisible}
+        onClose={handleCloseGuide}
+      />
 
     </div>
   );
